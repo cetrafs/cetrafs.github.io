@@ -36,7 +36,12 @@ jobs:
           extended: true
 
       - name: Build
-        run: hugo --minify
+        # The footer shows the commit and build time (Hugo maps HUGO_PARAMS_*
+        # to site params). They are unset in local builds, so nothing shows there.
+        env:
+          HUGO_PARAMS_COMMIT: ${{ github.sha }}
+          HUGO_PARAMS_COMMITURL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: HUGO_PARAMS_BUILDTIME="$(date -u '+%Y-%m-%d %H:%M UTC')" hugo --minify
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

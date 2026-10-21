@@ -8,6 +8,7 @@
       <a href="{{ "/docs/reference/" | relURL }}">Reference</a>
       {{ with .Site.Params.repoURL }}<a href="{{ . }}" rel="noopener">Source</a>{{ end }}
     </nav>
-    <p>&copy; {{ now.Year }} {{ .Site.Params.author }} &middot; Documentation for cetrafs {{ .Site.Params.version }} &middot; cetrafs is licensed under the <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" rel="license noopener">GPL v2 or later</a>; this documentation under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a></p>
+    <p>&copy; {{ now.Year }} {{ .Site.Params.author }} &middot; Documentation for cetrafs {{ .Site.Params.version }} &middot; cetrafs is licensed under the <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" rel="license noopener">GPL v2 or later</a>; this documentation under <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener">CC BY 4.0</a>
+    {{- with site.Params.commit }} &middot; <a class="build-id" href="{{ site.Params.commiturl }}" rel="noopener"{{ with site.Params.buildtime }} title="Built {{ . }}"{{ end }}>build {{ substr . 0 7 }}</a>{{ end }}</p>
   </div>
 </footer>

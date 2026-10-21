@@ -363,6 +363,7 @@ img { max-width: 100%; }
 .footer-nav a { color: var(--muted); font-weight: 500; }
 .footer-inner p { margin: 0; width: 100%; }
 .site-footer a:hover { color: var(--accent); }
+.site-footer .build-id { color: var(--muted); font-family: var(--font-mono, monospace); font-size: 12px; }
 .site-footer .brand-name { font-size: 16px; }
 
 .skip-link { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--surface); padding: 8px 14px; border-radius: var(--radius-sm); }
