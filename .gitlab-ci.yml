@@ -1,8 +1,5 @@
-# Builds the site with Hugo and publishes it to GitLab Pages.
-#
-# Publishing is manual on purpose: on the default branch the `pages` job waits
-# for someone to press "Run" in the pipeline view, so going live is always a
-# deliberate action. Other branches only build, to catch errors early.
+# Build check only: the site is published from the GitHub mirror (gh/main) by
+# .github/workflows/deploy.yml. This catches build errors on every branch.
 
 variables:
   HUGO_VERSION: "0.168.0"
@@ -22,16 +19,3 @@ build:
   stage: build
   script:
     - hugo --minify
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-
-pages:
-  stage: deploy
-  script:
-    - hugo --minify
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual

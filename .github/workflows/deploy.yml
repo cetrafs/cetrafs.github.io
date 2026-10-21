@@ -1,10 +1,10 @@
 name: Deploy to GitHub Pages
 
-# Manual only, on purpose: no push/pull_request/schedule trigger. This
-# workflow never runs on its own -- it only runs when someone clicks
-# "Run workflow" in the Actions tab (or triggers it via `gh workflow run
-# deploy.yml`), so publishing is always a deliberate, explicit action.
+# Publishes https://cetrafs.com on every push to main. It can also be run by
+# hand from the Actions tab ("Run workflow").
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history: enableGitInfo takes each page's "last updated" date
+          # from its last commit. A shallow clone gives every page the same date.
+          fetch-depth: 0
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3

@@ -87,16 +87,14 @@ repo. Brand navy is `#032D7B`.
 
 The site is published at <https://cetrafs.com/> (`baseURL` in `hugo.toml`).
 
-`.gitlab-ci.yml` builds it and deploys it to GitLab Pages. Publishing is
-**manual**: on the default branch the `pages` job waits for someone to press
-"Run" in the pipeline view. Other branches only build. The custom domain and its
-TLS certificate are configured in GitLab under *Deploy > Pages*, not in this repo.
+The repository has two remotes, kept in sync: `origin` (GitLab) and `gh`
+(GitHub, `cetrafs/cetrafs.github.io`). **A push to `gh/main` publishes the
+site**: `.github/workflows/deploy.yml` builds it and deploys it to GitHub Pages.
+The custom domain is set in the GitHub repository's Pages settings (`CNAME`).
+On GitLab, `.gitlab-ci.yml` only checks that the site builds.
 
-The pipeline clones with full history (`GIT_DEPTH: 0`) because each page's
-"last updated" date comes from git (`enableGitInfo`).
-
-`.github/workflows/deploy.yml` does the same for GitHub Pages, in case the site
-is mirrored there.
+Both pipelines clone with full history, because each page's "last updated" date
+comes from git (`enableGitInfo`).
 
 ## License
 
