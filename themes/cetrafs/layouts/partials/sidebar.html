@@ -6,13 +6,13 @@
     {{ $section := . }}
     <div class="nav-section">
       <div class="nav-section-title">
-        <a href="{{ $section.RelPermalink }}"{{ if eq $current.RelPermalink $section.RelPermalink }} class="active"{{ end }}>{{ $section.Title }}</a>
+        <a href="{{ $section.RelPermalink }}"{{ if eq $current.RelPermalink $section.RelPermalink }} class="active"{{ end }}>{{ $section.LinkTitle }}</a>
       </div>
       {{ if $section.Pages }}
       <ul>
         {{ range $section.Pages }}
         <li>
-          <a href="{{ .RelPermalink }}"{{ if eq $current.RelPermalink .RelPermalink }} class="active"{{ end }}>{{ .Title }}</a>
+          <a href="{{ .RelPermalink }}"{{ if eq $current.RelPermalink .RelPermalink }} class="active"{{ end }}>{{ .LinkTitle }}</a>
         </li>
         {{ end }}
       </ul>

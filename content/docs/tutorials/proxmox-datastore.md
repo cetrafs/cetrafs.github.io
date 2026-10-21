@@ -141,6 +141,7 @@ cat /proc/fs/cetrafs/*/info       # free space, Zone Group ownership, counters
 
 ## Next
 
+- Compare this with the other ways to share a SAN between Proxmox nodes: [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/).
 - Set up monitoring: [Monitor a volume](/docs/how-tos/monitor/).
 - Plan for failures: [Recover from a node failure](/docs/how-tos/recover-node-failure/).
 - Validate the stack before trusting it: [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/).

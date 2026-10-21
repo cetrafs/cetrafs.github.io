@@ -5,11 +5,11 @@
 {{ if not (eq .RelPermalink "/docs/") }}
   {{ if .Parent }}
     {{ if not (eq .Parent.RelPermalink "/docs/") }}
-      {{ $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .Parent.Title "item" .Parent.Permalink) }}
+      {{ $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .Parent.LinkTitle "item" .Parent.Permalink) }}
       {{ $pos = 3 }}
     {{ end }}
   {{ end }}
-  {{ $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .Title "item" .Permalink) }}
+  {{ $items = $items | append (dict "@type" "ListItem" "position" $pos "name" .LinkTitle "item" .Permalink) }}
 {{ end }}
 {{ $schema := dict "@context" "https://schema.org" "@type" "BreadcrumbList" "itemListElement" $items }}
 <script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>

@@ -1,0 +1,8 @@
+{{/* Renders the page's `faq` front matter as headings and answers. Use as {{% faq %}}
+     so the headings appear in the table of contents. faq-schema.html builds the
+     FAQPage structured data from the same list. */}}
+{{- range .Page.Params.faq }}
+## {{ .question }}
+
+{{ .answer }}
+{{ end -}}

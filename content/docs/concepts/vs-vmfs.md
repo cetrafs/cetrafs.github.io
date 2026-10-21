@@ -1,6 +1,7 @@
 ---
 weight: 445
-title: "cetrafs vs VMFS"
+title: "cetrafs vs VMFS: an open VMFS alternative for Linux"
+linkTitle: "cetrafs vs VMFS"
 description: "Where cetrafs matches VMFS's clustering model, where it goes further, and where it deliberately does less."
 toc: true
 ---

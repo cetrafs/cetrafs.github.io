@@ -32,7 +32,7 @@ The documentation is split into four kinds, according to what you need at the mo
 
 ## Where to start
 
-- **Evaluating cetrafs?** Read [What is cetrafs?](/docs/intro/), then [Project status](/docs/intro/status/) and [Limits and unsupported operations](/docs/reference/limits/). Those three pages will tell you whether it fits your workload.
+- **Evaluating cetrafs?** Read [What is cetrafs?](/docs/intro/), then [Project status](/docs/intro/status/) and [Limits and unsupported operations](/docs/reference/limits/). Those three pages will tell you whether it fits your workload. Quick answers are in the [FAQ](/docs/intro/faq/).
 - **Want to try it?** Follow [Your first cetrafs volume](/docs/tutorials/first-volume/). It runs on any supported Linux host using a loop device.
-- **Deploying on Proxmox VE?** Work through [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/), then the [VM disk settings](/docs/how-tos/configure-vm-disks/) guide.
+- **Deploying on Proxmox VE?** See how it compares in [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/), then work through [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/), then the [VM disk settings](/docs/how-tos/configure-vm-disks/) guide.
 - **Something went wrong?** See [Troubleshooting](/docs/reference/troubleshooting/) and [Recover from a node failure](/docs/how-tos/recover-node-failure/).

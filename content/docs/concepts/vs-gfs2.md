@@ -1,6 +1,7 @@
 ---
 weight: 450
-title: "cetrafs vs GFS2"
+title: "cetrafs vs GFS2 for VM storage on a shared LUN"
+linkTitle: "cetrafs vs GFS2"
 description: "Two different answers to two different questions: when GFS2 is the right choice, when cetrafs is, and measured throughput on the same LUN."
 toc: true
 ---

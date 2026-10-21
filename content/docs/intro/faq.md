@@ -1,0 +1,38 @@
+---
+weight: 20
+title: "Frequently asked questions"
+linkTitle: "FAQ"
+description: "Short answers about cetrafs: VMFS and GFS2, storage requirements, COMPARE AND WRITE, Proxmox VE, node failures, limits and project maturity."
+toc: true
+faq:
+  - question: "Is cetrafs an alternative to VMFS?"
+    answer: "Yes. It uses the same model: several hypervisors mount one shared LUN, each runs its own VMs, the disk images live directly on the volume, and nodes coordinate through the storage with SCSI COMPARE AND WRITE (VMware calls it ATS). cetrafs runs on a standard Linux kernel, and its on-disk format is open. See [cetrafs vs VMFS](/docs/concepts/vs-vmfs/)."
+  - question: "How is it different from GFS2 or OCFS2?"
+    answer: "GFS2 and OCFS2 are general-purpose POSIX cluster filesystems, coordinated by a distributed lock manager over the network. cetrafs is built only for VM images, which usually have a single writer, so it can lock whole files and coordinate through the LUN alone. If many hosts must write the same files at once, use GFS2 or OCFS2. See [cetrafs vs GFS2](/docs/concepts/vs-gfs2/)."
+  - question: "Do I need a DLM, corosync or pacemaker?"
+    answer: "Not for the filesystem. cetrafs has no lock manager and no network protocol in the data path. A multi-node production cluster still needs a cluster manager that can **fence** (power off) a hung host, such as Proxmox HA, because cetrafs can fence itself but not other hosts. See [Fencing and split-brain](/docs/concepts/fencing/)."
+  - question: "What storage does it need?"
+    answer: "Any block device works for a single node. For a cluster, every node needs the same iSCSI or Fibre Channel LUN, and the LUN must support SCSI COMPARE AND WRITE (opcode `0x89`). Multipath devices are supported. See [Check a LUN for atomic CAW](/docs/how-tos/check-caw/)."
+  - question: "Can I use it without COMPARE AND WRITE?"
+    answer: "Yes, but only one host can mount the volume at a time. While it is mounted, a mount on any other host fails with `EBUSY`. Loop devices, local disks and NVMe devices fall into this category."
+  - question: "Does it work with NVMe or NVMe over Fabrics?"
+    answer: "Only on a single node. NVMe has a fused compare-and-write, but a kernel module can't issue it, so cetrafs treats NVMe devices as having no atomic CAW."
+  - question: "Does it work with Proxmox VE?"
+    answer: "Yes. Mount the volume on every node with the `nofilelock` option and add it as shared directory storage. VMs can then be live-migrated between nodes. Follow [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/), and see [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/) for how it compares to the other options."
+  - question: "Which VM disk formats can I use?"
+    answer: "Any image file: raw, qcow2 or vmdk. Raw is recommended: qcow2 scatters its allocations and fragments badly. Use `cache=none` and `aio=threads`. See [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/)."
+  - question: "Can two hosts write the same file at the same time?"
+    answer: "Not by default. A file opened for writing is locked to one node, and other nodes get `Text file busy`. With the `nofilelock` mount option, which live migration needs, cetrafs no longer prevents it, and the hypervisor's own locking (Proxmox HA, qemu) must. See [Locking](/docs/concepts/locking/)."
+  - question: "What happens when a node crashes?"
+    answer: "The surviving nodes need no intervention. Once the dead node's heartbeat has been silent for the stale window (120 s by default), a survivor replays its journal and then takes over its regions and locks. If the node was only hung and comes back, it notices its lease was revoked and fails every write with `EIO` until it is remounted. See [Recover from a node failure](/docs/how-tos/recover-node-failure/)."
+  - question: "How many nodes and how large a file can it handle?"
+    answer: "Up to 64 nodes per volume, and files up to 16 TiB. A volume lives on one block device. See [Limits and unsupported operations](/docs/reference/limits/)."
+  - question: "Which kernels are supported?"
+    answer: "Linux `7.0.14` and `7.1.8+deb13` (Debian), and Proxmox VE `7.0.14-*-pve`, on amd64 and arm64. Other kernels are unverified. See [Project status](/docs/intro/status/)."
+  - question: "Is it ready for production?"
+    answer: "cetrafs is beta software. It has been reviewed, fuzzed and crash-tested, and its multi-node suite passes on real SAN hardware, but it hasn't had years of production use. Validate it on your own storage, and keep independent backups. See [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/)."
+  - question: "Can I upgrade without reformatting?"
+    answer: "Between releases with the same format version, yes: replace the module and tools. The on-disk format can still change during the beta, and when it does there is no in-place migration: you move the data off, reformat and restore. See [Upgrade to a new format version](/docs/how-tos/upgrade-reformat/)."
+---
+
+{{% faq %}}

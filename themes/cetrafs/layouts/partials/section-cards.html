@@ -2,7 +2,7 @@
 <div class="section-cards">
   {{ range . }}
   <a class="section-card" href="{{ .RelPermalink }}">
-    <span class="sc-title">{{ .Title }}</span>
+    <span class="sc-title">{{ .LinkTitle }}</span>
     {{ with .Description }}<span class="sc-desc">{{ . }}</span>{{ end }}
   </a>
   {{ end }}

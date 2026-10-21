@@ -1,7 +1,7 @@
 {{ if .Params.faq }}
 {{ $entities := slice }}
 {{ range .Params.faq }}
-{{ $q := dict "@type" "Question" "name" .question "acceptedAnswer" (dict "@type" "Answer" "text" .answer) }}
+{{ $q := dict "@type" "Question" "name" .question "acceptedAnswer" (dict "@type" "Answer" "text" (replace (.answer | markdownify) "href=\"/" (print "href=\"" $.Site.Home.Permalink))) }}
 {{ $entities = $entities | append $q }}
 {{ end }}
 {{ $schema := dict "@context" "https://schema.org" "@type" "FAQPage" "mainEntity" $entities }}
