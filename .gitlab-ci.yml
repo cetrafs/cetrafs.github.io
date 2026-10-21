@@ -1,0 +1,37 @@
+# Builds the site with Hugo and publishes it to GitLab Pages.
+#
+# Publishing is manual on purpose: on the default branch the `pages` job waits
+# for someone to press "Run" in the pipeline view, so going live is always a
+# deliberate action. Other branches only build, to catch errors early.
+
+variables:
+  HUGO_VERSION: "0.168.0"
+  # Full history: enableGitInfo takes each page's "last updated" date from its
+  # last commit. A shallow clone would give every page the same date.
+  GIT_DEPTH: 0
+
+default:
+  image: debian:trixie-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates curl git >/dev/null
+    - curl -fsSL "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.tar.gz" | tar -xz -C /usr/local/bin hugo
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - hugo version
+
+build:
+  stage: build
+  script:
+    - hugo --minify
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+
+pages:
+  stage: deploy
+  script:
+    - hugo --minify
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual

@@ -85,6 +85,21 @@ repo. Brand navy is `#032D7B`.
 
 ## Deployment
 
-`.github/workflows/deploy.yml` deploys to GitHub Pages, **manually only**
-(`workflow_dispatch`). Set `baseURL` in `hugo.toml` to the real domain first, and
-add `static/CNAME` if a custom domain is used.
+The site is published at <https://cetrafs.com/> (`baseURL` in `hugo.toml`).
+
+`.gitlab-ci.yml` builds it and deploys it to GitLab Pages. Publishing is
+**manual**: on the default branch the `pages` job waits for someone to press
+"Run" in the pipeline view. Other branches only build. The custom domain and its
+TLS certificate are configured in GitLab under *Deploy > Pages*, not in this repo.
+
+The pipeline clones with full history (`GIT_DEPTH: 0`) because each page's
+"last updated" date comes from git (`enableGitInfo`).
+
+`.github/workflows/deploy.yml` does the same for GitHub Pages, in case the site
+is mirrored there.
+
+## License
+
+Documentation (`content/`): CC BY 4.0. Website code: MIT (`LICENSE`). Fonts:
+SIL OFL 1.1. Details in [`LICENSE-docs.md`](LICENSE-docs.md). cetrafs itself is
+GPL-2.0-or-later.
