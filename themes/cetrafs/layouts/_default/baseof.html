@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="{{ .Site.Language.Locale }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ if .IsHome }}{{ .Site.Title }} &middot; {{ .Site.Params.tagline }}{{ else }}{{ .Title }} &middot; {{ .Site.Title }}{{ end }}</title>
+  {{ $desc := .Site.Params.description }}{{ if .Description }}{{ $desc = .Description }}{{ end }}
+  <meta name="description" content="{{ $desc }}">
+  <link rel="canonical" href="{{ .Permalink }}">
+  <link rel="icon" type="image/svg+xml" href="{{ "favicon.svg" | relURL }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ "favicon-32.png" | relURL }}">
+  <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
+  <meta name="theme-color" content="#032D7B">
+
+  <meta property="og:type" content="{{ if .IsHome }}website{{ else }}article{{ end }}">
+  <meta property="og:site_name" content="{{ .Site.Title }}">
+  <meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }}{{ end }}">
+  <meta property="og:description" content="{{ $desc }}">
+  <meta property="og:url" content="{{ .Permalink }}">
+  <meta property="og:image" content="{{ "social-card.png" | absURL }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }}{{ end }}">
+  <meta name="twitter:description" content="{{ $desc }}">
+  <meta name="twitter:image" content="{{ "social-card.png" | absURL }}">
+  {{ partial "faq-schema.html" . }}
+  {{ partial "breadcrumb-schema.html" . }}
+
+  {{ $css := resources.Get "css/main.css" | minify | fingerprint }}
+  <link rel="stylesheet" href="{{ $css.RelPermalink }}">
+  <script>
+    (function () {
+      var m = document.cookie.match(/(?:^|; )cf-theme=([^;]*)/);
+      var theme = m ? decodeURIComponent(m[1]) : "auto";
+      if (theme !== "light" && theme !== "dark") theme = "auto";
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  {{ partial "topbar.html" . }}
+  <main id="content">
+    {{ block "main" . }}{{ end }}
+  </main>
+  {{ partial "footer.html" . }}
+  {{ $copy := resources.Get "js/copy-code.js" | minify | fingerprint }}
+  <script src="{{ $copy.RelPermalink }}" defer></script>
+  {{ $search := resources.Get "js/search.js" | minify | fingerprint }}
+  <script src="{{ $search.RelPermalink }}" defer></script>
+</body>
+</html>

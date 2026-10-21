@@ -1,0 +1,13 @@
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a class="brand" href="{{ "/" | relURL }}">{{ partial "brand-mark.html" (dict "size" 22) }}<span class="brand-name">cetrafs</span></a>
+    <nav class="footer-nav">
+      <a href="{{ "/docs/tutorials/" | relURL }}">Tutorials</a>
+      <a href="{{ "/docs/how-tos/" | relURL }}">How-to guides</a>
+      <a href="{{ "/docs/concepts/" | relURL }}">Concepts</a>
+      <a href="{{ "/docs/reference/" | relURL }}">Reference</a>
+      {{ with .Site.Params.repoURL }}<a href="{{ . }}" rel="noopener">Source</a>{{ end }}
+    </nav>
+    <p>&copy; {{ now.Year }} The cetrafs authors &middot; Documentation for cetrafs {{ .Site.Params.version }} &middot; Built with <a href="https://gohugo.io" target="_blank" rel="noopener">Hugo</a></p>
+  </div>
+</footer>

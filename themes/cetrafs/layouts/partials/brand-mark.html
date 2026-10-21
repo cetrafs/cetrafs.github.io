@@ -1,0 +1,9 @@
+{{ $size := .size | default 28 }}
+<svg class="brand-mark" width="{{ $size }}" height="{{ $size }}" viewBox="262 245 731 723" aria-hidden="true">
+  <rect x="262" y="245" width="731" height="723" rx="92" fill="var(--brand-tile)"/>
+  <g fill="none" stroke="var(--brand-line)" stroke-width="{{ if lt $size 40 }}44{{ else }}35{{ end }}" stroke-linejoin="round">
+    <path d="M262 732 C290 710 316 700 342 700 C374 700 398 720 424 752 C440 771 449 773 458 773 C469 773 475.5 764 475.5 748 L475.5 619.5 A44.5 44.5 0 0 1 564.5 619.5"/>
+    <path d="M993 732 C965 710 939 700 913 700 C881 700 857 720 831 752 C815 771 806 773 797 773 C786 773 779.5 764 779.5 748 L779.5 619.5 A44.5 44.5 0 0 0 690.5 619.5"/>
+    <path d="M564.5 656 L564.5 406 A63 63 0 0 1 690.5 406 L690.5 656"/>
+  </g>
+</svg>

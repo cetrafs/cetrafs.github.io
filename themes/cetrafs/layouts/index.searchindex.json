@@ -1,0 +1,15 @@
+{{- $pages := where site.Pages "Section" "docs" -}}
+[
+{{- range $i, $p := $pages -}}
+  {{- if $i }},{{ end -}}
+  {{- $body := $p.Plain -}}
+  {{- if gt (len $body) 6000 }}{{ $body = substr $body 0 6000 }}{{ end -}}
+  {
+    "title": {{ $p.Title | jsonify }},
+    "section": {{ $p.CurrentSection.Title | jsonify }},
+    "url": {{ $p.RelPermalink | jsonify }},
+    "description": {{ $p.Description | jsonify }},
+    "body": {{ $body | jsonify }}
+  }
+{{- end -}}
+]

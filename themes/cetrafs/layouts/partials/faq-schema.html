@@ -1,0 +1,9 @@
+{{ if .Params.faq }}
+{{ $entities := slice }}
+{{ range .Params.faq }}
+{{ $q := dict "@type" "Question" "name" .question "acceptedAnswer" (dict "@type" "Answer" "text" .answer) }}
+{{ $entities = $entities | append $q }}
+{{ end }}
+{{ $schema := dict "@context" "https://schema.org" "@type" "FAQPage" "mainEntity" $entities }}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{ end }}

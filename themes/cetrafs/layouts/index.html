@@ -1,0 +1,102 @@
+{{ define "main" }}
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <p class="eyebrow"><b>Pre-1.0</b> cetrafs {{ .Site.Params.version }} &middot; Linux kernel module + tools</p>
+      <h1>Many hosts, one LUN.<br>One filesystem.</h1>
+      <p class="lead">cetrafs is a clustered, shared-disk filesystem for Linux. Several hypervisors mount the same iSCSI or Fibre Channel LUN at once and keep their VM disk images directly on it, coordinating through the storage itself. It is an open alternative to VMFS.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="{{ "/docs/tutorials/first-volume/" | relURL }}">Try it in 15 minutes</a>
+        <a class="btn btn-outline" href="{{ "/docs/" | relURL }}">Read the docs</a>
+      </div>
+    </div>
+    <div class="hero-logo">{{ partial "brand-mark.html" (dict "size" 220) }}</div>
+  </div>
+</section>
+
+<section class="home-section first">
+  <div class="features">
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 14V9M12 14V5M17 14V9"/></svg></div>
+      <h3>Shared-disk clustering</h3>
+      <p>Up to 64 nodes mount one block device. Each node allocates only from the Zone Groups it owns, so two nodes never draw from the same free-space pool.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h11M11 3l4 4-4 4"/><path d="M20 17H9M13 13l-4 4 4 4"/></svg></div>
+      <h3>One atomic primitive</h3>
+      <p>Every contested claim is a single SCSI COMPARE AND WRITE on one 512-byte record. It is the same idea as VMFS's ATS, with no DLM, no corosync and no network protocol in the data path.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M8 4v5h7M8 20v-6h8v6"/></svg></div>
+      <h3>Crash consistent</h3>
+      <p>Each node has its own write-ahead redo journal. It is replayed at mount and whenever a dead peer is reclaimed, and a replay guard refuses to roll back blocks that someone else has since rewritten.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <h3>Checksummed end to end</h3>
+      <p>CRC32C on every on-disk structure, verified by the kernel on read, with a retry for torn reads. Per-inode generations catch inode-number reuse across nodes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="8" height="14" rx="1.5"/><rect x="14" y="5" width="8" height="14" rx="1.5"/><path d="M10 12h4M12 10l2 2-2 2"/></svg></div>
+      <h3>Live migration</h3>
+      <p>With <code>nofilelock</code>, a VM image can be open on two nodes during a Proxmox/qemu online-migration handoff, and the handoff stays coherent even across a snapshot.</p>
+    </div>
+    <div class="feature-card">
+      <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
+      <h3>Self-healing upkeep</h3>
+      <p>Online defragmentation, a background scrubber that reclaims leaked blocks, and an <code>fsck.cetra</code> that repairs faults with one correct answer and refuses to guess at the rest.</p>
+    </div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>Built for one workload</h2>
+  <p class="sub">cetrafs is a VM datastore, not a general-purpose POSIX cluster filesystem. Keeping to that narrow contract is what lets it run without a cluster lock manager in the I/O path.</p>
+  <div class="compare-strip">
+    <div><div class="num">613&ndash;710</div><div class="lbl">MB/s O_DIRECT writes on a 3PAR LUN, about 2.3&times; GFS2 on the same LUN</div></div>
+    <div><div class="num">64</div><div class="lbl">hosts per volume at most, each owning its own allocation regions</div></div>
+    <div><div class="num">16 TiB</div><div class="lbl">maximum size of a single file or VM image (depth-2 extent tree)</div></div>
+    <div><div class="num">0</div><div class="lbl">daemons, lock managers or cluster networks required in the data path</div></div>
+  </div>
+</section>
+
+<section class="home-section">
+  <h2>Find what you need</h2>
+  <p class="sub">The documentation follows the <a href="https://diataxis.fr/">Diátaxis</a> framework. Pick a section based on what you are trying to do.</p>
+  <div class="quadrants">
+    <a class="quadrant q-tutorials" href="{{ "/docs/tutorials/" | relURL }}">
+      <span class="q-kind">Tutorials &middot; learning</span>
+      <h3>Learn by doing</h3>
+      <p>Guided lessons, from a throwaway loop-device volume to a Proxmox cluster that live-migrates VMs.</p>
+      <ul><li>Your first cetrafs volume</li><li>A two-node cluster on a shared LUN</li><li>A Proxmox VE shared datastore</li></ul>
+    </a>
+    <a class="quadrant q-how-tos" href="{{ "/docs/how-tos/" | relURL }}">
+      <span class="q-kind">How-to guides &middot; tasks</span>
+      <h3>Get a job done</h3>
+      <p>Short recipes for operators: install, probe storage, tune for multipath, repair, recover.</p>
+      <ul><li>Check a LUN for atomic CAW</li><li>Set the stale window for multipath</li><li>Recover from a node failure</li></ul>
+    </a>
+    <a class="quadrant q-concepts" href="{{ "/docs/concepts/" | relURL }}">
+      <span class="q-kind">Concepts &middot; understanding</span>
+      <h3>Understand the design</h3>
+      <p>Why cetrafs works the way it does: coordination, locking, journaling, fencing, and how it compares to VMFS and GFS2.</p>
+      <ul><li>Cluster coordination</li><li>Fencing and split-brain</li><li>cetrafs vs GFS2</li></ul>
+    </a>
+    <a class="quadrant q-reference" href="{{ "/docs/reference/" | relURL }}">
+      <span class="q-kind">Reference &middot; information</span>
+      <h3>Look it up</h3>
+      <p>Exact facts: tool flags and exit codes, mount options, procfs fields, module parameters, limits, the on-disk format.</p>
+      <ul><li>mkfs.cetra</li><li>/proc/fs/cetrafs</li><li>Limits and unsupported operations</li></ul>
+    </a>
+  </div>
+</section>
+
+<section class="home-cta">
+  <h2>Young software. Honest about it.</h2>
+  <p>cetrafs has been reviewed, fuzzed and crash-tested heavily, but it is pre-1.0 and has not had years of production use the way VMFS and ext4 have. Try it on storage you can afford to reformat, and keep independent backups.</p>
+  <div class="hero-ctas">
+    <a class="btn btn-primary" href="{{ "/docs/intro/status/" | relURL }}">Project status</a>
+    <a class="btn btn-outline" href="{{ "/docs/reference/limits/" | relURL }}">Known limits</a>
+  </div>
+</section>
+{{ end }}

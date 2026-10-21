@@ -1,0 +1,10 @@
+{{ with .Pages.ByWeight }}
+<div class="section-cards">
+  {{ range . }}
+  <a class="section-card" href="{{ .RelPermalink }}">
+    <span class="sc-title">{{ .Title }}</span>
+    {{ with .Description }}<span class="sc-desc">{{ . }}</span>{{ end }}
+  </a>
+  {{ end }}
+</div>
+{{ end }}

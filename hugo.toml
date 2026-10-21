@@ -1,0 +1,60 @@
+# TODO: set the real public URL once the domain / GitHub Pages site exists.
+baseURL = "https://cetrafs.org/"
+locale = "en-us"
+title = "cetrafs"
+theme = "cetrafs"
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term"]
+
+[markup]
+  [markup.goldmark.renderer]
+    unsafe = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 3
+  [markup.highlight]
+    style = "monokai"
+    lineNos = false
+    noClasses = true
+
+[outputs]
+  home = ["HTML", "RSS", "SearchIndex"]
+
+[mediaTypes."application/json"]
+  suffixes = ["json"]
+
+[outputFormats.SearchIndex]
+  mediaType = "application/json"
+  baseName = "index"
+  isPlainText = true
+  notAlternative = true
+
+[params]
+  description = "A clustered, shared-disk filesystem for Linux: several hosts mount one shared iSCSI or Fibre Channel LUN at once, with VM disk images living directly on the volume. An open alternative to VMFS."
+  tagline = "Clustered shared-disk filesystem for Linux"
+  # The current cetrafs release. The single place to change it: templates read
+  # .Site.Params.version and content pages use the {{< version >}} shortcode.
+  version = "0.7.4"
+  # Leave empty until the repository is public; the topbar/footer hide the link when empty.
+  repoURL = ""
+
+[[menu.primary]]
+  name = "Docs"
+  url = "/docs/"
+  weight = 10
+[[menu.primary]]
+  name = "Tutorials"
+  url = "/docs/tutorials/"
+  weight = 20
+[[menu.primary]]
+  name = "How-to"
+  url = "/docs/how-tos/"
+  weight = 30
+[[menu.primary]]
+  name = "Concepts"
+  url = "/docs/concepts/"
+  weight = 40
+[[menu.primary]]
+  name = "Reference"
+  url = "/docs/reference/"
+  weight = 50

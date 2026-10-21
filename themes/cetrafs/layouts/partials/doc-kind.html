@@ -1,0 +1,13 @@
+{{/* Diátaxis quadrant badge, derived from the top-level docs section. */}}
+{{ $kinds := dict
+  "tutorials" (dict "label" "Tutorial" "hint" "Learning-oriented")
+  "how-tos" (dict "label" "How-to guide" "hint" "Task-oriented")
+  "concepts" (dict "label" "Explanation" "hint" "Understanding-oriented")
+  "reference" (dict "label" "Reference" "hint" "Information-oriented")
+  "intro" (dict "label" "Start here" "hint" "Orientation")
+}}
+{{ $top := "" }}
+{{ with .File }}{{ $parts := split .Dir "/" }}{{ if ge (len $parts) 2 }}{{ $top = index $parts 1 }}{{ end }}{{ end }}
+{{ with index $kinds $top }}
+<div class="doc-kind doc-kind-{{ $top }}"><span>{{ .label }}</span><em>{{ .hint }}</em></div>
+{{ end }}

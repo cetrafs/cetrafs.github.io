@@ -1,0 +1,18 @@
+{{/* Shared body for docs single + list pages. */}}
+<div class="docs-shell">
+  {{ partial "sidebar.html" . }}
+  <div class="docs-main">
+    <article class="docs-content">
+      {{ partial "breadcrumbs.html" . }}
+      {{ partial "doc-kind.html" . }}
+      <h1>{{ .Title }}</h1>
+      {{ if .Description }}<p class="page-description">{{ .Description }}</p>{{ end }}
+      {{ .Content }}
+      {{ if and .IsSection (ne .RelPermalink "/docs/") }}
+        {{ partial "section-cards.html" . }}
+      {{ end }}
+      {{ if .IsPage }}{{ partial "prev-next.html" . }}{{ end }}
+    </article>
+  </div>
+  {{ partial "toc.html" . }}
+</div>

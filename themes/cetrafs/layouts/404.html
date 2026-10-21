@@ -1,0 +1,13 @@
+{{ define "main" }}
+<section class="hero hero-404">
+  <div class="hero-inner">
+    <div class="hero-logo">{{ partial "brand-mark.html" (dict "size" 72) }}</div>
+    <h1>404 &middot; Page not found</h1>
+    <p class="lead">That page doesn't exist, or it has moved. Try the search box above, or start from one of these.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="{{ "/" | relURL }}">Home</a>
+      <a class="btn btn-outline" href="{{ "/docs/" | relURL }}">Browse the docs</a>
+    </div>
+  </div>
+</section>
+{{ end }}

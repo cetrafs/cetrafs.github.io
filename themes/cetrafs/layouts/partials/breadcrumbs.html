@@ -1,0 +1,11 @@
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <a href="/docs/">Docs</a>
+  {{ if not (eq .RelPermalink "/docs/") }}
+    {{ if .Parent }}
+      {{ if not (eq .Parent.RelPermalink "/docs/") }}
+      <span class="sep">/</span><a href="{{ .Parent.RelPermalink }}">{{ .Parent.Title }}</a>
+      {{ end }}
+    {{ end }}
+    <span class="sep">/</span><span>{{ .Title }}</span>
+  {{ end }}
+</nav>

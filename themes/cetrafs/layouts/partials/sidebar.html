@@ -1,0 +1,32 @@
+{{ $current := . }}
+{{ $docsRoot := .Site.GetPage "/docs" }}
+<aside class="docs-sidebar" id="docs-sidebar">
+  <nav>
+    {{ range $docsRoot.Sections.ByWeight }}
+    {{ $section := . }}
+    <div class="nav-section">
+      <div class="nav-section-title">
+        <a href="{{ $section.RelPermalink }}"{{ if eq $current.RelPermalink $section.RelPermalink }} class="active"{{ end }}>{{ $section.Title }}</a>
+      </div>
+      {{ if $section.Pages }}
+      <ul>
+        {{ range $section.Pages }}
+        <li>
+          <a href="{{ .RelPermalink }}"{{ if eq $current.RelPermalink .RelPermalink }} class="active"{{ end }}>{{ .Title }}</a>
+        </li>
+        {{ end }}
+      </ul>
+      {{ end }}
+    </div>
+    {{ end }}
+  </nav>
+</aside>
+<script>
+(function () {
+  var sidebar = document.getElementById("docs-sidebar");
+  var active = sidebar && sidebar.querySelector("a.active");
+  if (!sidebar || !active) return;
+  var target = active.offsetTop - sidebar.clientHeight / 3;
+  sidebar.scrollTop = Math.max(0, target);
+})();
+</script>

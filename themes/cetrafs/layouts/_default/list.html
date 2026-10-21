@@ -1,0 +1,12 @@
+{{ define "main" }}
+{{ if eq .Section "docs" }}
+{{ partial "doc-page.html" . }}
+{{ else }}
+<div class="docs-main">
+  <article class="docs-content">
+    <h1>{{ .Title }}</h1>
+    {{ .Content }}
+  </article>
+</div>
+{{ end }}
+{{ end }}

@@ -1,0 +1,7 @@
+{{- $type := .Get "type" | default "note" -}}
+{{- $titles := dict "note" "Note" "tip" "Tip" "warning" "Warning" "danger" "Danger" -}}
+{{- $title := .Get "title" | default (index $titles $type) -}}
+<div class="callout callout-{{ $type }}" role="note">
+  <div class="callout-title">{{ $title }}</div>
+  {{ .Inner | .Page.RenderString (dict "display" "block") }}
+</div>

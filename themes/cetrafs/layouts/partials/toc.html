@@ -1,0 +1,7 @@
+{{ $showToc := .Params.toc | default true }}
+{{ if and $showToc .Fragments.Headings }}
+<aside class="docs-toc">
+  <div class="docs-toc-title">On this page</div>
+  {{ .TableOfContents }}
+</aside>
+{{ end }}
