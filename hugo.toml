@@ -5,6 +5,9 @@ title = "cetrafs"
 theme = "cetrafs"
 enableRobotsTXT = true
 disableKinds = ["taxonomy", "term"]
+# Per-page "last updated" dates (shown on doc pages, used in sitemap.xml and
+# structured data) come from each file's last git commit.
+enableGitInfo = true
 
 [markup]
   [markup.goldmark.renderer]
@@ -30,13 +33,16 @@ disableKinds = ["taxonomy", "term"]
   notAlternative = true
 
 [params]
-  description = "A clustered, shared-disk filesystem for Linux: several hosts mount one shared iSCSI or Fibre Channel LUN at once, with VM disk images living directly on the volume. An open alternative to VMFS."
+  description = "cetrafs is a clustered shared-disk filesystem for Linux: many hosts mount one iSCSI or Fibre Channel LUN and run VMs from it. An open alternative to VMFS."
+  author = "Massimo Cetra"
   tagline = "Clustered shared-disk filesystem for Linux"
   # The current cetrafs release. The single place to change it: templates read
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
   version = "0.7.4"
   # Leave empty until the repository is public; the topbar/footer hide the link when empty.
   repoURL = ""
+  # SPDX identifier, e.g. "GPL-2.0-only". Added to the structured data when set.
+  license = ""
 
 [[menu.primary]]
   name = "Docs"

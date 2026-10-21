@@ -1,7 +1,7 @@
 ---
 weight: 430
 title: "Fencing and split-brain"
-description: "Why a heartbeat timeout can't tell a dead node from a slow one, what cetrafs's self-fencing closes, what it leaves open, and why the cluster manager must power off hung hosts."
+description: "Why a heartbeat timeout can't tell a dead node from a slow one, what cetrafs self-fencing protects against, and why hung hosts must be powered off."
 toc: true
 ---
 

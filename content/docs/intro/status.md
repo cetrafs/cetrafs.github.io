@@ -5,7 +5,7 @@ description: "Where cetrafs stands today: what has been verified, what hasn't, a
 toc: true
 ---
 
-{{< callout type="warning" title="Pre-1.0 software" >}}
+{{< callout type="warning" title="Beta software" >}}
 cetrafs is young. It has been heavily reviewed, fuzzed and crash-tested, but it has not had years of production use the way VMFS or ext4 have. **Keep independent backups on other storage**, and trial it on a LUN you can afford to reformat before it holds anything you cannot lose.
 {{< /callout >}}
 

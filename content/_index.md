@@ -1,4 +1,4 @@
 ---
 title: "cetrafs"
-description: "A clustered, shared-disk filesystem for Linux: several hosts mount one shared iSCSI or Fibre Channel LUN at once, with VM disk images living directly on the volume. An open alternative to VMFS."
+description: "cetrafs is a clustered shared-disk filesystem for Linux: many hosts mount one iSCSI or Fibre Channel LUN and run VMs from it. An open alternative to VMFS."
 ---

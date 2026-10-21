@@ -50,7 +50,7 @@ Each returns a clean error. None of them silently does the wrong thing.
 | `chattr` / `FS_IOC_SETFLAGS` (immutable, append-only, nodump) | Not supported | |
 | Hardlink to a directory | `EPERM` | A directory has exactly one parent |
 | Remounting `ro` ↔ `rw`, or changing `nofilelock` | Refused | Unmount and mount again |
-| Formats from other versions | Refused at mount | No in-place migration before 1.0 |
+| Formats from other versions | Refused at mount | No in-place migration during the beta |
 
 ## Supported (sometimes asked)
 

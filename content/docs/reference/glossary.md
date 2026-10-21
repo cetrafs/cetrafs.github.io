@@ -1,7 +1,7 @@
 ---
 weight: 550
 title: "Glossary"
-description: "Terms used throughout the cetrafs documentation."
+description: "Definitions of the terms used in the cetrafs docs, from ATS and COMPARE AND WRITE to extents, fence epochs, Zone Groups and the Node Registry."
 toc: false
 ---
 

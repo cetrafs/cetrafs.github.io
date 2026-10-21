@@ -5,7 +5,7 @@ description: "Move a volume to a new cetrafs on-disk format by evacuating, refor
 toc: true
 ---
 
-cetrafs has **no on-disk backward compatibility** before 1.0. A format version change is a clean break: a volume whose format version, or an unknown *incompatible* feature bit, the module doesn't understand is refused at mount. An unknown *read-only-compatible* bit only forces a read-only mount.
+cetrafs has **no on-disk backward compatibility** during the beta. A format version change is a clean break: a volume whose format version, or an unknown *incompatible* feature bit, the module doesn't understand is refused at mount. An unknown *read-only-compatible* bit only forces a read-only mount.
 
 Not every release changes the format. Check the release notes. A release that keeps the format only needs the module and tools updated on every node.
 

@@ -1,7 +1,7 @@
 ---
 weight: 540
 title: "On-disk format"
-description: "The cetrafs on-disk layout and structures: superblock, Zone and Block Group descriptors, Node Registry, journals, inodes, extents, directory entries and feature flags."
+description: "The cetrafs on-disk layout: superblock, Zone and Block Group descriptors, Node Registry, journals, inodes, extents, directory entries and feature flags."
 toc: true
 ---
 
@@ -39,7 +39,7 @@ Every region start is a superblock field. Mount checks the whole map: every regi
 | Field | Meaning |
 |---|---|
 | `magic` | `0xC4553770` |
-| `version` | Format version (`0x0006`). Changed freely before 1.0; never migrated. |
+| `version` | Format version (`0x0006`). Can change between beta releases; never migrated. |
 | `sb_bytes` | Size of the superblock structure, as a sanity check |
 | `block_size` | 4096 |
 | `total_blocks` | Device size in blocks |

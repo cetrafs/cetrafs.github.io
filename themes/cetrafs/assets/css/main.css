@@ -429,6 +429,8 @@ img { max-width: 100%; }
 .section-card .sc-desc { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
 @media (max-width: 700px) { .section-cards { grid-template-columns: 1fr; } }
 
+.last-updated { margin: 48px 0 0; font-size: 13px; color: var(--muted); }
+.last-updated + .prev-next { margin-top: 16px; }
 .prev-next { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 56px 0 0; padding-top: 24px; border-top: 1px solid var(--border); }
 .prev-next .pn { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
 .prev-next .pn:hover { border-color: var(--accent); }

@@ -6,7 +6,8 @@
   <title>{{ if .IsHome }}{{ .Site.Title }} &middot; {{ .Site.Params.tagline }}{{ else }}{{ .Title }} &middot; {{ .Site.Title }}{{ end }}</title>
   {{ $desc := .Site.Params.description }}{{ if .Description }}{{ $desc = .Description }}{{ end }}
   <meta name="description" content="{{ $desc }}">
-  <link rel="canonical" href="{{ .Permalink }}">
+  {{ if eq .Kind "404" }}<meta name="robots" content="noindex">{{ else }}<link rel="canonical" href="{{ .Permalink }}">{{ end }}
+  {{ with .Site.Params.author }}<meta name="author" content="{{ . }}">{{ end }}
   <link rel="icon" type="image/svg+xml" href="{{ "favicon.svg" | relURL }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ "favicon-32.png" | relURL }}">
   <link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">
@@ -17,6 +18,8 @@
   <meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }}{{ end }}">
   <meta property="og:description" content="{{ $desc }}">
   <meta property="og:url" content="{{ .Permalink }}">
+  <meta property="og:locale" content="{{ $loc := split .Site.Language.Locale "-" }}{{ index $loc 0 }}{{ with index $loc 1 }}_{{ upper . }}{{ end }}">
+  {{ if and .IsPage (not .Lastmod.IsZero) }}<meta property="article:modified_time" content="{{ .Lastmod.Format "2006-01-02T15:04:05Z07:00" }}">{{ end }}
   <meta property="og:image" content="{{ "social-card.png" | absURL }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -26,6 +29,7 @@
   <meta name="twitter:image" content="{{ "social-card.png" | absURL }}">
   {{ partial "faq-schema.html" . }}
   {{ partial "breadcrumb-schema.html" . }}
+  {{ partial "page-schema.html" . }}
 
   {{ $css := resources.Get "css/main.css" | minify | fingerprint }}
   <link rel="stylesheet" href="{{ $css.RelPermalink }}">

@@ -11,6 +11,9 @@
       {{ if and .IsSection (ne .RelPermalink "/docs/") }}
         {{ partial "section-cards.html" . }}
       {{ end }}
+      {{ if and .IsPage (not .Lastmod.IsZero) }}
+      <p class="last-updated">Last updated <time datetime="{{ .Lastmod.Format "2006-01-02" }}">{{ .Lastmod.Format "2 January 2006" }}</time></p>
+      {{ end }}
       {{ if .IsPage }}{{ partial "prev-next.html" . }}{{ end }}
     </article>
   </div>

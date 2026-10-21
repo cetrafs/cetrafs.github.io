@@ -8,6 +8,6 @@
       <a href="{{ "/docs/reference/" | relURL }}">Reference</a>
       {{ with .Site.Params.repoURL }}<a href="{{ . }}" rel="noopener">Source</a>{{ end }}
     </nav>
-    <p>&copy; {{ now.Year }} The cetrafs authors &middot; Documentation for cetrafs {{ .Site.Params.version }} &middot; Built with <a href="https://gohugo.io" target="_blank" rel="noopener">Hugo</a></p>
+    <p>&copy; {{ now.Year }} {{ .Site.Params.author }} &middot; Documentation for cetrafs {{ .Site.Params.version }}</p>
   </div>
 </footer>
