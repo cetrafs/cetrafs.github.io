@@ -37,7 +37,12 @@ enableGitInfo = true
   tagline = "Clustered shared-disk filesystem for Linux"
   # The current cetrafs release. The single place to change it: templates read
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
-  version = "0.8"
+  # It is also the GitHub release tag and the Debian package version.
+  version = "0.8.1"
+  # The latest pve-storage-cetrafs release (tag = package version), read
+  # with {{< param pluginVersion >}}.
+  pluginVersion = "0.2"
+  pluginRepoURL = "https://github.com/cetrafs/cetrafs-proxmox"
   # The cetrafs source repository: GitHub link in the topbar (with the star
   # count once it reaches repoStarsMin), "Source" in the footer, structured data.
   repoURL = "https://github.com/cetrafs/cetrafs"

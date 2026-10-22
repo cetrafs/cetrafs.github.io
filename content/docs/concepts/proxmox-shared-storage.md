@@ -46,7 +46,7 @@ GFS2 and OCFS2 are general-purpose POSIX cluster filesystems. They coordinate no
 
 cetrafs takes the same file-based approach as GFS2 and OCFS2, but it is built only for VM images and coordinates **through the LUN itself**. Every contested claim is one atomic SCSI COMPARE AND WRITE (ATS), the primitive VMFS uses, so there is no DLM and no network protocol in the I/O path. Each node allocates from regions it owns, so writing new data needs no cross-node coordination at all.
 
-In Proxmox, a cetrafs volume is a **shared directory storage**. You get:
+In Proxmox, a cetrafs volume is a **shared, file-based storage**. The [storage plugin](/docs/how-tos/proxmox-plugin/) adds a `cetrafs` storage type that Proxmox mounts on every node by itself, over a Proxmox iSCSI storage or on any block device. You get:
 
 - **Thin raw images** on the SAN, without a file server.
 - **Live migration**, with the `nofilelock` mount option.
@@ -66,4 +66,4 @@ The trade-offs:
 - **A SAN, and thick disks are acceptable:** shared LVM. It is the supported, conservative choice.
 - **A SAN, and you want thin, file-based VM disks without a file server or a DLM:** cetrafs, once you have [validated it on your storage](/docs/how-tos/validate-storage-stack/).
 
-To set it up, follow [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/).
+To set it up, [install cetrafs and the plugin](/docs/how-tos/install-proxmox/) on every node, then [add the storage](/docs/how-tos/proxmox-plugin/). To see every step done by hand, follow [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/).

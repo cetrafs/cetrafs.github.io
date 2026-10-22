@@ -51,7 +51,17 @@ qemu-img create -f qcow2 -o cluster_size=1M /mnt/cetra/images/<vmid>/vm-<vmid>-d
 
 Preallocated space is made of *uninitialized* extents: the blocks are reserved and read back as zeroes, and the first write to each one has to split the extent and convert it. That conversion path is the most complex write path in the filesystem, and it is where the bugs found during deployment testing were. With preallocation off, the allocator lays down long contiguous runs on first write instead: 16 extents for an 8 GiB image.
 
-In the Proxmox storage config (`/etc/pve/storage.cfg`), set it for the whole cetrafs storage:
+In the Proxmox storage config (`/etc/pve/storage.cfg`), set it for the whole cetrafs storage. With the [storage plugin](/docs/how-tos/proxmox-plugin/), run `pvesm set <storage> --preallocation off`, or edit its entry:
+
+```ini
+cetrafs: san1
+    path /mnt/pve/san1
+    base san-iscsi:0.0.1.scsi-36001405abc...
+    content images,rootdir
+    preallocation off
+```
+
+For a volume you mount yourself and register as directory storage:
 
 ```ini
 dir: cetrafs

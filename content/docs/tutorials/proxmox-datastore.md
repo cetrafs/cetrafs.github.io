@@ -9,12 +9,16 @@ In this tutorial you turn a shared SAN LUN into a datastore for a Proxmox VE clu
 
 ## What you need
 
-- A **Proxmox VE cluster** on the `7.0.14-*-pve` kernel, with cetrafs installed on **every** node. See [Install from Debian packages](/docs/how-tos/install-packages/).
+- A **Proxmox VE cluster** on the `7.0.14-*-pve` kernel, with cetrafs installed on **every** node. See [Install on Proxmox VE](/docs/how-tos/install-proxmox/).
 - A **shared LUN** visible to every node, here `<dev>`. This can be `/dev/sdb`, or a multipath alias such as `/dev/mapper/mpatha`.
 - The LUN must support **SCSI COMPARE AND WRITE (ATS)**.
 - **Proxmox HA with fencing** configured, if you will run this in production. cetrafs relies on it to power off a host that has stopped responding (see [Fencing and split-brain](/docs/concepts/fencing/)).
 
 We'll use `/mnt/cetra` as the mount point and `cetrafs` as the Proxmox storage ID.
+
+{{< callout type="note" title="Doing it by hand, on purpose" >}}
+This tutorial mounts the volume and registers it in Proxmox by hand, so you see each piece. For a cluster you will keep, the [storage plugin](/docs/how-tos/proxmox-plugin/) replaces steps 4 and 5: Proxmox then mounts the volume on every node itself, always with `nofilelock`, and you don't edit `/etc/fstab`.
+{{< /callout >}}
 
 {{< callout type="warning" >}}
 `mkfs.cetra` erases the LUN. `mkfs` and `fsck` must run while the volume is **unmounted on every node**.

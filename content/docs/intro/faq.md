@@ -2,7 +2,7 @@
 weight: 20
 title: "Frequently asked questions"
 linkTitle: "FAQ"
-description: "Short answers about cetrafs: VMFS and GFS2, storage requirements, COMPARE AND WRITE, Proxmox VE, node failures, limits and project maturity."
+description: "Short answers about cetrafs: VMFS and GFS2, storage requirements, COMPARE AND WRITE, Proxmox VE, thin provisioning, node failures, limits and project maturity."
 toc: true
 faq:
   - question: "Is cetrafs an alternative to VMFS?"
@@ -18,9 +18,11 @@ faq:
   - question: "Does it work with NVMe or NVMe over Fabrics?"
     answer: "Only on a single node. NVMe has a fused compare-and-write, but a kernel module can't issue it, so cetrafs treats NVMe devices as having no atomic CAW."
   - question: "Does it work with Proxmox VE?"
-    answer: "Yes. Mount the volume on every node with the `nofilelock` option and add it as shared directory storage. VMs can then be live-migrated between nodes. Follow [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/), and see [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/) for how it compares to the other options."
+    answer: "Yes. The [storage plugin](/docs/how-tos/proxmox-plugin/) adds a `cetrafs` storage type: Proxmox mounts the volume on every node with the `nofilelock` option, which live migration needs, and uses it as shared storage. Both cetrafs and the plugin are published as Debian packages: see [Install on Proxmox VE](/docs/how-tos/install-proxmox/). You can also mount the volume yourself and add it as shared directory storage, as in [Build a Proxmox VE shared datastore](/docs/tutorials/proxmox-datastore/), and see [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/) for how it compares to the other options."
   - question: "Which VM disk formats can I use?"
     answer: "Any image file: raw, qcow2 or vmdk. Raw is recommended: qcow2 scatters its allocations and fragments badly. Use `cache=none` and `aio=threads`. See [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/)."
+  - question: "Does cetrafs support thin provisioning?"
+    answer: "Yes — thin files on the volume. Sparse files work properly: `SEEK_HOLE`/`SEEK_DATA` and `FIEMAP` are implemented, so `cp --sparse=auto`, `tar -S` and `qemu-img convert` preserve holes. A raw image only consumes the blocks actually written. `fallocate(PUNCH_HOLE|KEEP_SIZE)` is supported too, so space can be returned to the filesystem from inside a file — that's what makes a guest's `fstrim` → qemu `discard=on` path shrink an image."
   - question: "Can two hosts write the same file at the same time?"
     answer: "Not by default. A file opened for writing is locked to one node, and other nodes get `Text file busy`. With the `nofilelock` mount option, which live migration needs, cetrafs no longer prevents it, and the hypervisor's own locking (Proxmox HA, qemu) must. See [Locking](/docs/concepts/locking/)."
   - question: "What happens when a node crashes?"
