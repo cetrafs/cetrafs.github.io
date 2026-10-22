@@ -32,7 +32,7 @@ sudo apt install build-essential linux-headers-$(uname -r) git attr
 ## 2. Get the source and build it
 
 ```sh
-git clone <repo-url> cetrafs      # the public repository URL is coming soon
+git clone https://github.com/cetrafs/cetrafs.git
 cd cetrafs
 make
 ```

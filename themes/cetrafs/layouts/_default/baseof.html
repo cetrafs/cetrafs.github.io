@@ -53,5 +53,7 @@
   <script src="{{ $copy.RelPermalink }}" defer></script>
   {{ $search := resources.Get "js/search.js" | minify | fingerprint }}
   <script src="{{ $search.RelPermalink }}" defer></script>
+  {{ $stars := resources.Get "js/repo-stars.js" | minify | fingerprint }}
+  <script src="{{ $stars.RelPermalink }}" defer></script>
 </body>
 </html>

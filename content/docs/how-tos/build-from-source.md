@@ -16,7 +16,7 @@ The module is built against the headers of **one specific kernel**. The tools ar
 ## Build
 
 ```sh
-git clone <repo-url> cetrafs      # the public repository URL is coming soon
+git clone https://github.com/cetrafs/cetrafs.git
 cd cetrafs
 make              # kernel module + userspace tools
 ```

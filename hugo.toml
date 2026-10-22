@@ -38,8 +38,10 @@ enableGitInfo = true
   # The current cetrafs release. The single place to change it: templates read
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
   version = "0.8"
-  # Leave empty until the repository is public; the topbar/footer hide the link when empty.
-  repoURL = ""
+  # The cetrafs source repository: GitHub link in the topbar (with the star
+  # count once it reaches repoStarsMin), "Source" in the footer, structured data.
+  repoURL = "https://github.com/cetrafs/cetrafs"
+  repoStarsMin = 0
   # SPDX identifier of the cetrafs software license, used in the structured data.
   license = "GPL-2.0-or-later"
 
