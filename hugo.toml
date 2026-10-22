@@ -41,7 +41,7 @@ enableGitInfo = true
   # The cetrafs source repository: GitHub link in the topbar (with the star
   # count once it reaches repoStarsMin), "Source" in the footer, structured data.
   repoURL = "https://github.com/cetrafs/cetrafs"
-  repoStarsMin = 0
+  repoStarsMin = 25
   # SPDX identifier of the cetrafs software license, used in the structured data.
   license = "GPL-2.0-or-later"
 
