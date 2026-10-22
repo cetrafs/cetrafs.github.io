@@ -26,8 +26,8 @@ The current version is **{{< version >}}**. The on-disk format can change betwee
 The release gate is a scripted matrix (`tests/release-matrix.sh`) plus a multi-node suite run against real hardware:
 
 - **Loop-device integration suite** (`make check`): over 1,200 assertions covering every feature end to end, including simulated cross-node scenarios.
-- **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath.
-- **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, and cuts power without a flush first.
+- **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath. A second, on 0.7.4, used a three-node amd64 Proxmox cluster on a commodity iSCSI LUN: all 27 scenarios passed, three times in a row.
+- **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, cuts power without a flush first, and tears blocks at every sector boundary.
 - **Fuzzing** of the mount and `fsck` parsing boundaries with hostile images.
 - **Soak testing** with mixed workloads and a full `fsck` after every round.
 
@@ -47,8 +47,16 @@ The safest way to build confidence is to test one layer at a time, so a fault ca
 
 ## License
 
-cetrafs (the kernel module and the tools) is free software, licensed under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or (at your option) any later version (`GPL-2.0-or-later`).
+cetrafs is free software. Its two halves are licensed differently:
 
-This documentation is licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0): you may copy and adapt it, including commercially, as long as you credit the source. Both come without warranty; see [Warranty and liability](/docs/intro/disclaimer/).
+| Part | License |
+|---|---|
+| Kernel module (`kmod/`) | [GPL, version 2 or later](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) (`GPL-2.0-or-later`). It links against the Linux kernel, so there is no other option for it. |
+| Userspace tools (`mkfs.cetra`, `fsck.cetra`, `defrag.cetra`) | [AGPL, version 3 or later](https://www.gnu.org/licenses/agpl-3.0.html) (`AGPL-3.0-or-later`), or a **commercial license** for those whom the AGPL's source-availability terms don't suit. Contact Massimo Cetra through [GitHub](https://github.com/ctrix). |
+| On-disk format header (`include/cetrafs.h`) | Any of the three, so each half can use it. The format itself is documented and anyone may implement it. |
+
+Each source file's `SPDX-License-Identifier` line is authoritative for that file. See [`LICENSE`](https://github.com/cetrafs/cetrafs/blob/main/LICENSE) in the repository.
+
+This documentation is licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0): you may copy and adapt it, including commercially, as long as you credit the source. The software and the documentation come without warranty; see [Warranty and liability](/docs/intro/disclaimer/).
 
 Neither license covers the cetrafs name or logo, which are trademarks of Massimo Cetra. See [The cetrafs name and logo](/docs/intro/trademark/).

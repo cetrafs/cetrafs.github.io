@@ -53,6 +53,10 @@ These counters cover the whole module, not one mount: they include every volume 
 | `pending_free_appends` | Frees this node queued into another node's Zone Group |
 | `pf_drains` | Pending-free queue drains performed |
 | `foreign_free_leaks` | Extents not freed because the owning node's pending-free queue was full. The space is leaked on purpose and later reclaimed by the scrubber or `fsck -r`; the caller never sees an error. |
+| `pf_drop_runs`, `pf_drop_blocks` | Extents dropped because a pending-free queue was full, and the blocks they held. Should stay at 0; a rise means a Zone Group owner isn't draining its queue. |
+| `pf_full_scans` | Complete scans of a pending-free queue that found no free slot. While a queue is known to be full, appends skip it for `pf_full_backoff_ms`, so this should rise far more slowly than `pf_drop_runs`. |
+| `pf_drain_blocks` | Queue blocks read by drain passes. Should follow how full the queues are, not their size: an empty queue costs a handful of reads per heartbeat. |
+| `bg_recounts` | Block Group free counts recomputed from the bitmap because the cached count claimed free space the bitmap didn't have. Expected to stay at 0. |
 | `zg_pending_deltas` | Zone Groups with free-count changes held in memory, not yet written to disk (this mount) |
 
 ### Journal
@@ -63,6 +67,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | `journal_replays` | Journal areas this node replayed |
 | `journal_replay_declines` | Contested replay claims this node gave up to a peer |
 | `journal_replay_applied` | Entries replayed: interrupted writes completed |
+| `journal_replay_torn` | Of those, entries whose target block was **torn** (caught mid-write by the crash) and was repaired by the replay |
 | `journal_replay_skipped` | Entries skipped because the write had already landed, or the target was a freshly allocated block |
 | `journal_replay_refused` | Entries **refused** because another node had since rewritten the target block. Each one is a cross-node overwrite that was prevented. Expect a burst after a failover under `nofilelock` and zero otherwise. |
 
@@ -85,6 +90,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | `map_calls`, `map_blocks` | Block mapping calls against the blocks they covered. `blocks` much larger than `calls` means mappings come back as contiguous runs. |
 | `giveback_blocks` | Preallocated blocks released because an extent split had no room. A last resort that should stay at or near zero. |
 | `tree_blocks` | External extent-tree blocks (leaf or interior) written. Nonzero means some file outgrew its four inline extent slots. |
+| `tree_reads` | External extent-tree blocks read during lookups. Should stay close to a couple per lookup, however fragmented the file. |
 | `file_cache_drops`, `file_cache_reconciles` | Times this node dropped a file's cached extent tree and pages because a peer had republished the file, and the reconciles that followed. Drops should be about 0 on a node writing its own files, and every drop should be followed by a reconcile; `drops` running ahead of `reconciles` means files are stuck on the slow, uncached path. |
 
 ## `properties`

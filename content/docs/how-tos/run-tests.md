@@ -49,4 +49,6 @@ From any machine, run a scenario, or the full suite:
 
 Scenarios include `caw` (the real primitive, asserted to have been contended), `lock-race`, `replay-race`, `fence-reclaim`, `record-write-race`, `dirent-torn`, `extent-leaf-staleness`, `inode-reuse`, `pending-free` and `dir-storm`. `-repeat N` turns any scenario into a soak and stops at the first failure.
 
+`full-suite` is the quick per-change gate, so it leaves out two slower scenarios: `hypervisor-storm`, the one workload shaped like a real deployment, and `ns-fuzz`, which catches a format change that moves on-disk offsets. Before a release, run `-scenario=release-suite`, which is `full-suite` plus those two.
+
 The coordinator checks that every node runs the **same** `cetrafs.ko` build and refuses to run otherwise, and it unmounts every node when it exits.

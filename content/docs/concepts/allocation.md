@@ -31,6 +31,8 @@ Zone Group ownership controls **new allocation only**. It doesn't decide who may
 
 A bitmap has exactly one writer, its Zone Group's owner, and that rule matters. So when node A deletes or truncates a file whose blocks sit in a Zone Group owned by node B, node A **doesn't touch B's bitmap**. It appends an entry, `{block, count}`, to that Zone Group's **pending-free queue**, using compare-and-write. The owner drains its queues and applies the frees at mount, on every heartbeat, and after it claims a Zone Group.
 
+Each queue holds 65,536 entries, enough for the frees from deleting a large, fragmented image in one go. If a queue does fill, because its owner is down or slow to drain, the extra frees are **dropped and leaked** rather than failing the delete; the scrubber or `fsck -r` reclaims them later. A node that finds a queue full stops rescanning it for a moment (`pf_full_backoff_ms`, 1 s by default), so a large delete doesn't grind through the full queue once per extent.
+
 ## Keeping free counts cheap
 
 Each Block Group and Zone Group caches its free-block count. Updating those counts on the device for every block allocated would add a synchronous write per block. A 1 MiB write once went from about 2 s to about 40 s because of exactly that. So the changes **accumulate in memory**, and the owner applies them with one compare-and-write per Block Group at **durability boundaries**: file close, `fsync`, namespace-lock release, `sync`, unmount.

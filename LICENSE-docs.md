@@ -54,6 +54,7 @@ without asking.
 
 ## cetrafs itself
 
-The cetrafs software (kernel module and tools) is a separate project, licensed
-under the GNU General Public License, version 2 or (at your option) any later
-version (GPL-2.0-or-later).
+The cetrafs software is a separate project with its own licenses: the kernel
+module is GPL-2.0-or-later, and the userspace tools are AGPL-3.0-or-later or
+available under a commercial license. See
+<https://github.com/cetrafs/cetrafs/blob/main/LICENSE>.

@@ -42,8 +42,9 @@ enableGitInfo = true
   # count once it reaches repoStarsMin), "Source" in the footer, structured data.
   repoURL = "https://github.com/cetrafs/cetrafs"
   repoStarsMin = 25
-  # SPDX identifier of the cetrafs software license, used in the structured data.
-  license = "GPL-2.0-or-later"
+  # The cetrafs licensing terms (module GPL-2.0-or-later, tools AGPL-3.0-or-later
+  # or commercial), linked from the structured data.
+  license = "https://github.com/cetrafs/cetrafs/blob/main/LICENSE"
 
 [[menu.primary]]
   name = "Docs"

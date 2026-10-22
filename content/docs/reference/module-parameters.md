@@ -40,7 +40,8 @@ Leave these at their defaults unless a developer asks you to change them.
 |---|---|---|
 | `bg_sweep_min_secs` | 30 | Minimum seconds between refreshes of other nodes' Block Group descriptors when `info` or `statfs` is read |
 | `pf_drain_min_ms` | 500 | Minimum milliseconds between on-demand pending-free drains |
+| `pf_full_backoff_ms` | 1000 | Milliseconds to skip scanning a pending-free queue already found full. `0` always scans. |
 
 ## Test-only parameters
 
-The module also has fault-injection and test parameters, including `cas_selftest`, `cas_stress`, `journal_skip_consume`, `journal_ignore_guard`, `mount_fail_at`, `fence_skip_precheck`, and parameters whose names start with `force_` or `nocaw_`. **Never set these on a production system.** Some of them disable the safety checks described in this documentation.
+The module also has fault-injection and test parameters, including `cas_selftest`, `cas_stress`, `journal_skip_consume`, `journal_ignore_guard`, `journal_ignore_torn`, `idx_range_ignore`, `pf_force_foreign`, `pf_force_queue_full`, `mount_fail_at`, `fence_skip_precheck`, and parameters whose names start with `force_` or `nocaw_`. **Never set these on a production system.** Some of them disable the safety checks described in this documentation.

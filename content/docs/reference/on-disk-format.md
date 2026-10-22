@@ -5,7 +5,7 @@ description: "The cetrafs on-disk layout: superblock, Zone and Block Group descr
 toc: true
 ---
 
-The authoritative specification is `include/cetrafs.h` in the source tree. The kernel module and the userspace tools both compile against it. This page summarises it for format version **`0x0006`**.
+The authoritative specification is `include/cetrafs.h` in the source tree. The kernel module and the userspace tools both compile against it. This page summarises it for format version **`0x0008`**.
 
 ## Conventions
 
@@ -39,7 +39,7 @@ Every region start is a superblock field. Mount checks the whole map: every regi
 | Field | Meaning |
 |---|---|
 | `magic` | `0xC4553770` |
-| `version` | Format version (`0x0006`). Can change between beta releases; never migrated. |
+| `version` | Format version (`0x0008`). Can change between beta releases; never migrated. |
 | `sb_bytes` | Size of the superblock structure, as a sanity check |
 | `block_size` | 4096 |
 | `total_blocks` | Device size in blocks |
@@ -93,7 +93,7 @@ Slice `node_journal_start + row × node_journal_blocks` belongs to registry row 
 
 ## Pending-free queue entry (16 bytes)
 
-`{lba, count, magic}`: an extent freed by a node that doesn't own the Zone Group, waiting for the owner to apply it.
+`{lba, count, magic}`: an extent freed by a node that doesn't own the Zone Group, waiting for the owner to apply it. Each Zone Group's queue is 256 blocks (1 MiB), room for 65,536 entries: enough to hold the frees from deleting a large, fragmented VM image.
 
 ## Inode (one per 4 KiB block)
 
@@ -115,10 +115,12 @@ Slice `node_journal_start + row × node_journal_blocks` belongs to registry row 
 ```text
 extent header   12 bytes: magic, entries, max, depth, generation
 extent          16 bytes: logical block (32-bit), length (31-bit + uninitialized flag), physical block
-extent index    12 bytes: logical block, physical block of child
+extent index    16 bytes: logical range of the child [first, end), physical block of child
 ```
 
 The tree is at most depth 2: the inode's 4 inline slots, then interior blocks, then leaf blocks. Arrays at every depth are **append-only and unordered**, so growing a file always edits a single block, and readers handle any order. Leaf and interior blocks end with a checksummed `{magic, crc}` tail. An extent marked *uninitialized* was preallocated and reads as zeroes until it is written.
+
+Each index entry in an interior block records the range of logical blocks its child covers, so a lookup reads only the leaf that can hold the block instead of every leaf. The range only ever widens; an end of `0` means "unknown, read the child". Index entries in the inode's inline root carry no range.
 
 ## Directory entry (266 bytes, fixed size)
 

@@ -51,9 +51,10 @@ So replay now **checks before it applies**:
 |---|---|
 | What the entry says it held *before* the change | **Applies** the entry, finishing the interrupted write |
 | The entry's payload already | **Skips** it: the write landed |
-| Something else | **Refuses** it, and logs the block. Another node has rewritten it since, and rolling it back would destroy newer data. |
+| A **torn** block, one that fails its own checksum | **Applies** the entry. The crash caught the write half-done, which is exactly what the journal is for. |
+| Some other complete, valid block | **Refuses** it, and logs the block. Another node has rewritten it since, and rolling it back would destroy newer data. |
 
-Entries for **freshly allocated** blocks are skipped outright, because nothing referenced them at crash time. The counters `journal_replay_applied`, `journal_replay_skipped` and `journal_replay_refused` in `/proc/fs/cetrafs/<dev>/info` show which case happened. Each *refused* entry is a cross-node corruption that did not happen.
+Entries for **freshly allocated** blocks are skipped outright, because nothing referenced them at crash time. The counters `journal_replay_applied`, `journal_replay_torn`, `journal_replay_skipped` and `journal_replay_refused` in `/proc/fs/cetrafs/<dev>/info` show which case happened. Each *refused* entry is a cross-node corruption that did not happen.
 
 ## Per-`fsync`, not per-syscall
 

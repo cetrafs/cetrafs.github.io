@@ -12,7 +12,7 @@ The name and logo tell people that what they are using is the real cetrafs, buil
 
 ## The licenses don't cover the name
 
-cetrafs is free software under the [GPL, version 2 or later](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html), and this documentation is under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Those licenses let you use, change and redistribute the code and the text. They give **no rights to the cetrafs name or logo**. You can fork the code freely, but you can't take the name with it.
+cetrafs is free software, under the GPL (the kernel module) and the AGPL or a commercial license (the tools), as described on the [project status](/docs/intro/status/#license) page. This documentation is under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Those licenses let you use, change and redistribute the code and the text. They give **no rights to the cetrafs name or logo**. You can fork the code freely, but you can't take the name with it.
 
 ## What you can do without asking
 

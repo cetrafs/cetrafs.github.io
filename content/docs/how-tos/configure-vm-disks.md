@@ -35,7 +35,7 @@ In the web UI: **VM → Hardware → Hard Disk → Edit → Advanced → Async I
 
 ## Prefer raw images
 
-qcow2 allocates in 64 KiB clusters and scatters them, so its backing file fragments badly. Under random guest I/O, a 32 GiB qcow2 image reached **28,659 extents**; an 8 GiB raw image had **16**. Extent lookup is a linear scan, so every mapped block pays for that fragmentation, and under `nofilelock` the defragmenter that could fix it is off.
+qcow2 allocates in 64 KiB clusters and scatters them, so its backing file fragments badly. Under random guest I/O, a 32 GiB qcow2 image reached **28,659 extents**; an 8 GiB raw image had **16**. Every extent is metadata the filesystem has to store, look up and journal, and under `nofilelock` the defragmenter that could fix the fragmentation is off. Since 0.8, a lookup reads about 2 extent-tree blocks however fragmented the file is (it used to read every leaf until it found the block), but a raw image with a handful of extents is still the better choice.
 
 If you must use qcow2, create it with 1 MiB clusters. That makes the L2 tables 16× smaller, so qemu's default L2 cache covers the whole image, and cuts fragmentation by about the same factor:
 

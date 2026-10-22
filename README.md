@@ -99,5 +99,5 @@ comes from git (`enableGitInfo`).
 ## License
 
 Documentation (`content/`): CC BY 4.0. Website code: MIT (`LICENSE`). Fonts:
-SIL OFL 1.1. Details in [`LICENSE-docs.md`](LICENSE-docs.md). cetrafs itself is
-GPL-2.0-or-later.
+SIL OFL 1.1. Details in [`LICENSE-docs.md`](LICENSE-docs.md). cetrafs itself:
+kernel module GPL-2.0-or-later, tools AGPL-3.0-or-later or commercial.
