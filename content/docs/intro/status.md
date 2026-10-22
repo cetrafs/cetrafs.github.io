@@ -50,3 +50,5 @@ The safest way to build confidence is to test one layer at a time, so a fault ca
 cetrafs (the kernel module and the tools) is free software, licensed under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or (at your option) any later version (`GPL-2.0-or-later`).
 
 This documentation is licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0): you may copy and adapt it, including commercially, as long as you credit the source.
+
+Neither license covers the cetrafs name or logo, which are trademarks of Massimo Cetra. See [The cetrafs name and logo](/docs/intro/trademark/).

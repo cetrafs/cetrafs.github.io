@@ -2,12 +2,13 @@
 <section class="hero">
   <div class="hero-inner">
     <div>
-      <p class="eyebrow"><b>Beta</b> cetrafs {{ .Site.Params.version }} &middot; Linux kernel module + tools</p>
+      <p class="eyebrow"><a class="beta-badge" href="{{ "/docs/intro/status/" | relURL }}" title="cetrafs is young software: read the project status">Beta</a> cetrafs {{ .Site.Params.version }} &middot; Linux kernel module + tools</p>
       <h1>Many hosts, one LUN.<br>One filesystem.</h1>
       <p class="lead">cetrafs is a clustered, shared-disk filesystem for Linux. Several hypervisors mount the same iSCSI or Fibre Channel LUN at once and keep their VM disk images directly on it, coordinating through the storage itself. It is an open alternative to VMFS.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary" href="{{ "/docs/tutorials/first-volume/" | relURL }}">Try it in 15 minutes</a>
         <a class="btn btn-outline" href="{{ "/docs/" | relURL }}">Read the docs</a>
+        <a class="btn btn-outline btn-status" href="{{ "/docs/intro/status/" | relURL }}"><span class="status-dot" aria-hidden="true"></span>Project status</a>
       </div>
     </div>
     <div class="hero-logo">{{ partial "brand-mark.html" (dict "size" 220) }}</div>

@@ -44,10 +44,13 @@ Authors) and JetBrains Mono (Copyright The JetBrains Mono Project Authors). Both
 are distributed under the SIL Open Font License 1.1:
 <https://openfontlicense.org/>.
 
-## The cetrafs logo
+## The cetrafs name and logo
 
-The cetrafs name and logo identify the project. They are not covered by the
-licenses above.
+cetrafs™ and the cetrafs logo (`themes/cetrafs/static/logo/`, the favicons and
+the social card) are trademarks of Massimo Cetra. They are **not** covered by
+the licenses above: neither MIT nor CC BY 4.0 grants any right to use them.
+See <https://cetrafs.com/docs/intro/trademark/> for what you may do with them
+without asking.
 
 ## cetrafs itself
 

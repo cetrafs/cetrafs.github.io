@@ -172,7 +172,25 @@ img { max-width: 100%; }
 .hero-logo .brand-mark g { stroke: #032D7B; }
 .hero .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600;
   padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); margin: 0 0 22px; }
-.hero .eyebrow b { color: #FFD27A; font-weight: 700; }
+/* Beta badge: amber pill with a slow pulsing glow, so it's hard to miss that cetrafs is young. */
+.hero .beta-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; margin-left: -7px;
+  border-radius: 999px; background: #FFC24D; color: #3A2500; font-weight: 800; font-size: 13px;
+  letter-spacing: .08em; text-transform: uppercase; text-decoration: none;
+  box-shadow: 0 0 0 0 rgba(255,194,77,.7), 0 0 14px 2px rgba(255,194,77,.55);
+  animation: beta-pulse 2.2s ease-in-out infinite; }
+.hero .beta-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3A2500; }
+.hero .beta-badge:hover { color: #3A2500; background: #FFD27A; }
+@keyframes beta-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,194,77,.75), 0 0 10px 1px rgba(255,194,77,.45); }
+  60%  { box-shadow: 0 0 0 12px rgba(255,194,77,0), 0 0 26px 8px rgba(255,194,77,.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255,194,77,0), 0 0 10px 1px rgba(255,194,77,.45); }
+}
+.hero .btn-status { border-color: rgba(255,194,77,.6); }
+.hero .btn-status:hover { background: rgba(255,194,77,.12); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #FFC24D; box-shadow: 0 0 8px 2px rgba(255,194,77,.6); }
+@media (prefers-reduced-motion: reduce) {
+  .hero .beta-badge { animation: none; box-shadow: 0 0 16px 3px rgba(255,194,77,.6); }
+}
 .hero h1 { font-size: 48px; font-weight: 750; margin: 0 0 18px; letter-spacing: -1.2px; line-height: 1.1; }
 .hero p.lead { font-size: 18.5px; color: var(--hero-muted); margin: 0 0 32px; line-height: 1.6; max-width: 620px; }
 .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
