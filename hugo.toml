@@ -37,7 +37,7 @@ enableGitInfo = true
   tagline = "Clustered shared-disk filesystem for Linux"
   # The current cetrafs release. The single place to change it: templates read
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
-  version = "0.7.4"
+  version = "0.8"
   # Leave empty until the repository is public; the topbar/footer hide the link when empty.
   repoURL = ""
   # SPDX identifier of the cetrafs software license, used in the structured data.
