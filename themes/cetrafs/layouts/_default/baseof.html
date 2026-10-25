@@ -41,6 +41,9 @@
       document.documentElement.setAttribute("data-theme", theme);
     })();
   </script>
+  {{- if hugo.IsProduction }}
+  {{ partial "google_analytics.html" . }}
+  {{- end }}
 </head>
 <body>
   <a class="skip-link" href="#content">Skip to content</a>

@@ -31,6 +31,14 @@ enableGitInfo = true
   isPlainText = true
   notAlternative = true
 
+# Google Analytics (GA4). Only production builds (`hugo`, the deploy) include
+# the tag; `hugo server` doesn't. Empty the ID to remove it.
+[services.googleAnalytics]
+  ID = "G-H2PQ5W0BK0"
+
+[privacy.googleAnalytics]
+  respectDoNotTrack = true
+
 [params]
   description = "cetrafs is a clustered shared-disk filesystem for Linux: many hosts mount one iSCSI or Fibre Channel LUN and run VMs from it. An open alternative to VMFS."
   author = "Massimo Cetra"
