@@ -11,7 +11,7 @@
     btn.className = "code-copy-btn";
     btn.innerHTML = COPY_ICON + "<span>Copy</span>";
     btn.addEventListener("click", function () {
-      navigator.clipboard.writeText(pre.innerText).then(function () {
+      navigator.clipboard.writeText(pre.textContent).then(function () {
         btn.innerHTML = CHECK_ICON + "<span>Copied</span>";
         btn.classList.add("copied");
         setTimeout(function () {

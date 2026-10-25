@@ -364,6 +364,10 @@ img { max-width: 100%; }
   margin: 18px 0;
 }
 .docs-content .highlight pre { margin: 0; }
+/* Chroma wraps each line in an inline display:flex span. Flex boxes make the
+   browser add an extra newline per line when the code is selected and copied,
+   which breaks shell commands continued with a trailing backslash. */
+.docs-content .highlight pre code > span { display: inline !important; }
 .docs-content pre {
   padding: 18px 20px; overflow-x: auto;
   font-family: var(--font-mono); font-size: 13.5px; line-height: 1.7;
