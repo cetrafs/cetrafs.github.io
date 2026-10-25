@@ -36,7 +36,7 @@ content/
 themes/cetrafs/
   layouts/                  # baseof, single/list (shared partials/doc-page.html), home, 404
   layouts/partials/         # topbar, sidebar, toc, breadcrumbs, doc-kind badge, prev/next, brand mark
-  layouts/shortcodes/       # callout, steps, version
+  layouts/shortcodes/       # callout, steps, version, plugin-version
   assets/css/main.css       # the whole design system (CSS custom properties, light/dark)
   assets/js/                # client-side search, copy-code button
   static/                   # fonts, favicons, logo SVG, social card
@@ -61,11 +61,13 @@ Shortcodes:
 ```
 {{< callout type="note|tip|warning|danger" title="Optional" >}}Markdown{{< /callout >}}
 {{< steps >}}1. numbered steps rendered as badges{{< /steps >}}
-{{< version >}}   the current release, from params.version in hugo.toml
+{{< version >}}          the current cetrafs release, from params.version in hugo.toml
+{{< plugin-version >}}   the current cetrafs-proxmox release, from params.pluginVersion
 ```
 
-Never hardcode the release number in content: use `{{< version >}}` (it also
-works inside code blocks). Templates use `.Site.Params.version`.
+Never hardcode a release number in content: use `{{< version >}}` or
+`{{< plugin-version >}}` (both work inside code blocks). Templates use
+`.Site.Params.version` and `.Site.Params.pluginVersion`.
 
 The search index (`/index.json`) and section cards are generated automatically.
 
@@ -73,8 +75,8 @@ The search index (`/index.json`) and section cards are generated automatically.
 
 The content is derived from the cetrafs source tree (`docs/*.md`, `include/cetrafs.h`,
 `kmod/procfs.c`, the tools' usage text). When those disagree, **the code wins**.
-Things worth re-checking on each release: the version in `hugo.toml`
-(`params.version`), supported kernels, procfs fields, module parameters, and
+Things worth re-checking on each release: the versions in `hugo.toml`
+(`params.version` for cetrafs, `params.pluginVersion` for cetrafs-proxmox), supported kernels, procfs fields, module parameters, and
 mkfs defaults.
 
 ## Brand

@@ -2,7 +2,7 @@
 weight: 342
 title: "Add cetrafs storage with the Proxmox VE plugin"
 linkTitle: "Proxmox storage plugin"
-description: "Use the pve-storage-cetrafs plugin to add a shared LUN as a cetrafs storage in Proxmox VE: over a Proxmox iSCSI storage or on any block device, mounted on every node automatically."
+description: "Use the pve-storage-cetrafs plugin to add a shared LUN as a cetrafs storage in Proxmox VE: over a Proxmox iSCSI storage or on any block device, mounted on every node automatically, from pvesm or the web UI."
 toc: true
 ---
 
@@ -12,7 +12,7 @@ The plugin always mounts with `nofilelock`, which [live migration](/docs/how-tos
 
 ## Before you start
 
-- cetrafs and the plugin are installed on **every** node: see [Install on Proxmox VE](/docs/how-tos/install-proxmox/).
+- cetrafs and the plugin are installed on **every** node, and optionally the [web UI package](#the-web-ui): see [Install on Proxmox VE](/docs/how-tos/install-proxmox/).
 - Every node sees the same LUN, and it [supports atomic CAW](/docs/how-tos/check-caw/). Without it, only one node can mount the volume.
 - If the LUN is multipathed, its queueing time is shorter than the stale window: see [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).
 
@@ -97,6 +97,30 @@ The path must be **stable** and **the same on every node**. The plugin refuses `
 For multipath, run `multipathd` on every node with the same `multipath.conf`, and check `multipath -ll` on each node before you add the storage. Prefer `--cetrafs-device` over `--base` with multipath: `--base` resolves to the LUN's `scsi-*` link, which is not guaranteed to be the multipath device.
 
 A device only one node can see still works, but restrict the storage to that node with `--nodes <node>`. The storage is always marked shared, so otherwise Proxmox would migrate guests without copying their disks.
+
+## The web UI
+
+The optional `pve-storage-cetrafs-ui` package adds the `cetrafs` storage type to the Proxmox VE web interface: **Datacenter → Storage → Add → CetraFS** for a new storage, and **Edit** for an existing one. Without it everything works the same, but you manage cetrafs storages with `pvesm`, and the web UI lists them with type "Unknown". It needs Proxmox VE 9 (`pve-manager` 9.0 or later) and the plugin package of the same version.
+
+In the Add dialog, **Source** chooses between a LUN of a Proxmox iSCSI storage (`--base`: pick the iSCSI storage, then the LUN) and a block device path (`--cetrafs-device`). The mount point and mount options are optional, as with `pvesm`. Checking for atomic CAW and running `mkfs.cetra` are still done on the command line.
+
+Install it on every node whose web UI you use: each node serves its own UI, so it only changes the UI of the node it is installed on. After installing or upgrading it, reload the browser tab (Ctrl+F5).
+
+Proxmox VE has no interface for UI plugins, so the package adds a `<script>` tag to `/usr/share/pve-manager/index.html.tpl` and reloads `pveproxy`. As a result:
+
+- A `pve-manager` upgrade replaces the template, and the package adds the tag again right after.
+- `dpkg --verify pve-manager` reports `index.html.tpl` as modified.
+- If a future `pve-manager` changes the template or the storage UI in a way the integration doesn't recognise, the integration turns itself off, with a warning in the install output or the browser console, instead of breaking the UI.
+
+To check the tag, or add it again by hand:
+
+```sh
+sh /usr/share/pve-storage-cetrafs-ui/cetrafs-ui-index status && echo present
+sh /usr/share/pve-storage-cetrafs-ui/cetrafs-ui-index apply
+systemctl reload pveproxy
+```
+
+`apt-get remove pve-storage-cetrafs-ui` removes the tag.
 
 ## Storage options
 

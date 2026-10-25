@@ -47,9 +47,10 @@ enableGitInfo = true
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
   # It is also the GitHub release tag and the Debian package version.
   version = "0.8.1"
-  # The latest pve-storage-cetrafs release (tag = package version), read
-  # with {{< param pluginVersion >}}.
-  pluginVersion = "0.2"
+  # The latest cetrafs-proxmox release: the GitHub release tag and the version
+  # of the pve-storage-cetrafs packages. The single place to change it; content
+  # pages use the {{< plugin-version >}} shortcode.
+  pluginVersion = "0.3"
   pluginRepoURL = "https://github.com/cetrafs/cetrafs-proxmox"
   # The cetrafs source repository: GitHub link in the topbar (with the star
   # count once it reaches repoStarsMin), "Source" in the footer, structured data.
