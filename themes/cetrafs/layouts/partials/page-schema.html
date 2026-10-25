@@ -1,11 +1,15 @@
 {{/* schema.org structured data: the project and site on the home page, a TechArticle on each doc page. */}}
 {{ $author := dict "@type" "Person" "name" .Site.Params.author }}
-{{ $website := dict "@type" "WebSite" "@id" (print .Site.Home.Permalink "#website") "name" .Site.Title "url" .Site.Home.Permalink "description" .Site.Params.description "inLanguage" .Site.Language.Locale }}
+{{ $logo := dict "@type" "ImageObject" "url" ("icon-512.png" | absURL) "width" 512 "height" 512 }}
+{{/* The project as an Organization: Google takes the logo for search results from it. */}}
+{{ $org := dict "@type" "Organization" "@id" (print .Site.Home.Permalink "#organization") "name" "cetrafs" "url" .Site.Home.Permalink "logo" $logo "founder" $author }}
+{{ with .Site.Params.repoURL }}{{ $org = merge $org (dict "sameAs" (slice .)) }}{{ end }}
+{{ $website := dict "@type" "WebSite" "@id" (print .Site.Home.Permalink "#website") "name" .Site.Title "url" .Site.Home.Permalink "description" .Site.Params.description "inLanguage" .Site.Language.Locale "publisher" (dict "@id" (print .Site.Home.Permalink "#organization")) }}
 {{ if .IsHome }}
   {{ $app := dict "@type" "SoftwareApplication" "name" "cetrafs" "description" .Site.Params.description "url" .Site.Home.Permalink "applicationCategory" "UtilitiesApplication" "applicationSubCategory" "Cluster filesystem" "operatingSystem" "Linux" "softwareVersion" .Site.Params.version "author" $author "image" ("social-card.png" | absURL) }}
   {{ with .Site.Params.license }}{{ $app = merge $app (dict "license" .) }}{{ end }}
   {{ with .Site.Params.repoURL }}{{ $app = merge $app (dict "codeRepository" . "downloadUrl" .) }}{{ end }}
-  {{ $schema := dict "@context" "https://schema.org" "@graph" (slice $website $app) }}
+  {{ $schema := dict "@context" "https://schema.org" "@graph" (slice $org $website $app) }}
 <script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
 {{ else if and .IsPage (eq .Section "docs") }}
   {{ $desc := .Site.Params.description }}{{ with .Description }}{{ $desc = . }}{{ end }}
