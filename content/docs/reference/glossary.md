@@ -27,13 +27,16 @@ Fenced
 : The state of a mount whose lease was revoked. Every write fails with `EIO` until it is unmounted and mounted again.
 
 File lock
-: The whole-file, cross-node exclusive lock taken when a file is opened for writing (default mounts) or with `flock(2)` (under `nofilelock`).
+: The whole-file, cross-node exclusive lock taken when a file is opened for writing (default mounts) or with `flock(2)` (under `nofilelock`). On a default mount, `flock(LOCK_UN)` can suspend it for one file: see *Lock suspension*.
 
 Heartbeat
 : Each node's periodic renewal of its Node Registry row (every 15 s by default).
 
 Lead node
 : The first node to mount a volume while nobody else has it mounted. It sets the cluster-wide file-lock mode.
+
+Lock suspension
+: On a default mount, `flock(LOCK_UN)` on a file this node is writing gives up this node's file lock for that file while it stays open, so another node can take the file over; `flock(LOCK_EX)` takes it back. See [Locking](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount).
 
 Namespace lock
 : A per-inode cross-node lock held for the duration of one namespace operation, covering only the records it changes.

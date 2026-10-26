@@ -15,7 +15,9 @@ toc: true
 | Every write fails with `EIO` | This node has **fenced itself**: a peer took over its resources | Check `fenced: yes` in `info`, then unmount and mount again. [Details](/docs/how-tos/recover-node-failure/#a-mount-where-every-write-fails-with-eio) |
 | `ENOSPC` with free space showing | No owned Zone Group has room and none is free to claim (`write_ready: no`), or the inodes have run out | Check `free_inodes` and `write_ready` |
 | `EOPNOTSUPP` from `fallocate` | A mode other than allocate or punch-hole was requested | [Limits](/docs/reference/limits/#unsupported-operations) |
-| `EOPNOTSUPP` from `flock` | Shared lock requested, or a default (locked) mount | Use `LOCK_EX`, under `nofilelock` |
+| `EOPNOTSUPP` from `flock` | Shared lock requested, or `LOCK_EX` on a default mount for a file this node doesn't have open for writing | Use `LOCK_EX`, on a descriptor opened for writing |
+| `EWOULDBLOCK` from `flock -x -n` on a default mount | The lock was suspended and another node has taken the file since | Expected after a handoff. It never takes the lock from the peer: wait, or let the peer close the file |
+| `EBUSY` from `flock -u` | The defragmenter is moving the file | Try again when the pass ends |
 | `EINVAL` from `rename` | `RENAME_EXCHANGE` or `RENAME_WHITEOUT` | Not supported |
 
 ## Mount failures

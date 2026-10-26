@@ -13,7 +13,7 @@ mount -t cetrafs [-o OPTIONS] <dev> <mountpoint>
 
 | Option | Effect |
 |---|---|
-| *(default)* | Read-write cluster participant. The cross-node **exclusive open lock** is on: while a node has a file open for writing, any open of that file from another node fails with `ETXTBSY`. |
+| *(default)* | Read-write cluster participant. The cross-node **exclusive open lock** is on: while a node has a file open for writing, any open of that file from another node fails with `ETXTBSY`. `flock(2)` can suspend it for one file during a handoff. |
 | `nofilelock` | Turns the automatic exclusive open lock off, so an image can be open on two nodes during a live-migration handoff. File metadata is then read fresh from the device on every access. The defragmenter is disabled. Per-file locking is still available through `flock(2)`. Applies to the whole cluster; see below. |
 | `ro` | Read-only **observer**. Registers and heartbeats, so peers don't reclaim files it is reading, and publishes read presence. Claims no Zone Group, replays no journal, runs no defragmenter or scrubber, and writes nothing else. |
 
@@ -43,11 +43,21 @@ mount -t cetrafs [-o OPTIONS] <dev> <mountpoint>
 | Refused, with "CAW discovery failed" in `dmesg` | cetrafs couldn't determine whether the device supports compare-and-write, so it won't guess. |
 | Read-only mount when read-write was asked for | An unknown *read-only-compatible* feature bit is set on the volume. |
 
-## Using `flock(2)` under `nofilelock`
+## Using `flock(2)`
+
+Under `nofilelock`, `flock` claims the lock:
 
 | Call | Result |
 |---|---|
 | `flock(fd, LOCK_EX)` | Claims the cross-node exclusive lock. No other node can open the file while it is held. |
 | `flock(fd, LOCK_UN)` or closing all duplicates of the fd | Releases it |
 | `flock(fd, LOCK_SH)` | `EOPNOTSUPP`: only exclusive locks exist |
-| Any `flock` on a default (locked) mount | `EOPNOTSUPP`: the lock is already automatic |
+
+On a default mount, since {{< version >}}, `flock` suspends and resumes the automatic lock of a file this node has open for writing. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount).
+
+| Call | Result |
+|---|---|
+| `flock(fd, LOCK_UN)` | Makes the file durable, then suspends this node's lock on it. Another node can open it. Success, doing nothing, if this node isn't writing the file. `EBUSY` while the defragmenter is moving it. |
+| `flock(fd, LOCK_EX)` | Takes a suspended lock back. Never from another node: `EWOULDBLOCK` with `LOCK_NB` while a peer holds it, otherwise it waits. Success if the lock was never suspended. `EOPNOTSUPP` if this node doesn't have the file open for writing. |
+| `flock(fd, LOCK_SH)` | `EOPNOTSUPP`: only exclusive locks exist |
+| Closing the last writer | Ends the suspension |

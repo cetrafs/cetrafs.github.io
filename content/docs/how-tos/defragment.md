@@ -29,6 +29,7 @@ The file can be open and in use while this runs. `defrag.cetra` opens the file f
 | Sparse file | Files with interior holes are skipped. |
 | Disabled | The mount has `defrag=off` in `controls`, or is mounted `nofilelock` (where the defragmenter is always off, because its safety depends on the lock). |
 | Foreign lock | Another node has the file open. |
+| `Device or resource busy` | This node has [suspended the file's lock](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount) for a handoff, so the lock isn't there to protect the move. |
 | Not a cetrafs mount | The path isn't on cetrafs. |
 
 ## Let it run in the background

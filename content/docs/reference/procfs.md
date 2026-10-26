@@ -91,6 +91,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | `giveback_blocks` | Preallocated blocks released because an extent split had no room. A last resort that should stay at or near zero. |
 | `tree_blocks` | External extent-tree blocks (leaf or interior) written. Nonzero means some file outgrew its four inline extent slots. |
 | `tree_reads` | External extent-tree blocks read during lookups. Should stay close to a couple per lookup, however fragmented the file. |
+| `lock_suspends`, `lock_resumes` | Files whose lock this node suspended with `flock(LOCK_UN)` on a default mount, and took back with `flock(LOCK_EX)`. A suspension also ends when the file is closed, so the two needn't match; a gap that keeps growing while files stay open means something unlocks files and never takes them back. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount). |
 | `file_cache_drops`, `file_cache_reconciles` | Times this node dropped a file's cached extent tree and pages because a peer had republished the file, and the reconciles that followed. Drops should be about 0 on a node writing its own files, and every drop should be followed by a reconcile; `drops` running ahead of `reconciles` means files are stuck on the slow, uncached path. |
 
 ## `properties`

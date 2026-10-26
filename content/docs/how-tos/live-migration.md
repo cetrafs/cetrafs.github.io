@@ -48,7 +48,7 @@ What cetrafs still guarantees is a coherent **sequential handoff**. Under `nofil
 `nofilelock` turns off the *automatic* lock, not the lock itself. A process can claim the same exclusive cross-node lock on a single file with the standard `flock(2)` call, or with the `flock(1)` command from a shell or a migration hook:
 
 ```sh
-exec 9>/mnt/cetra/images/vm-100-disk-0.raw
+exec 9>>/mnt/cetra/images/vm-100-disk-0.raw     # >> opens for writing without truncating
 flock -x 9      # hold the lock during normal operation
 
 # before a live migration, open the handoff window:
@@ -63,7 +63,11 @@ While a node holds this lock, no other node can open the file at all, for readin
 Notes:
 
 - Only exclusive locks exist. `LOCK_SH` isn't supported.
-- `flock` returns `EOPNOTSUPP` on a default (locked) mount, where the lock is already automatic.
+- Open the image with `>>`, never `>`: `>` truncates it to zero.
+
+## Hand over one file on a default mount
+
+Since {{< version >}}, the same `flock -u` and `flock -x` also work on a default mount, where every file is locked. `flock -u` suspends this node's lock on that one image, and `flock -x` takes it back; every other file stays locked. It is the safer building block, but Proxmox can't use it yet: qemu would have to take and release the lock at the switchover, and neither qemu nor Proxmox does that today. Until it does, live migration on Proxmox needs `nofilelock`. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount) for what a suspended lock still protects, and [the qemu fix](/docs/concepts/locking/#the-fix-a-flock-locking-mode-in-qemu).
 
 ## Related
 
