@@ -1,7 +1,7 @@
 ---
 weight: 420
 title: "Locking model"
-description: "Whole-file exclusive locks instead of byte-range locks, per-inode namespace locks, read presence, nofilelock for live migration, and flock."
+description: "Whole-file exclusive locks instead of byte-range locks, per-inode namespace locks, read presence, nofilelock for live migration on Proxmox VE, and flock."
 toc: true
 ---
 
@@ -56,10 +56,35 @@ The exclusive lock rules out one important operation, **live migration**. During
 
 Mounting with `nofilelock` turns the automatic lock off. Each open then claims nothing and is never refused. In exchange:
 
-- **The layer above prevents double writes.** Proxmox HA and qemu's own image locking take over that guarantee. VMFS and vSphere divide the work the same way.
+- **Only the layer above keeps writers apart.** On Proxmox VE that is the cluster layer alone: a VM's configuration belongs to one node, and HA fences a failed node before restarting its VMs elsewhere. qemu's own image locking plays no part, as the next section explains.
 - **File metadata is read fresh on every access.** With no lock guaranteeing that a cached copy is current, cetrafs re-reads a file's extent tree and inode record from the device each time, as it always does for directories. That is what makes the **sequential** handoff coherent, even after a snapshot on the source has rewritten the image's layout. Without it, the destination could keep using a stale block map and send guest writes to the wrong blocks. The cost is extra device reads on the data path.
 - **Simultaneous writers are still unsafe.** `nofilelock` makes the handoff from one writer to the next correct. It does not make two writers at the same moment correct.
 - **The defragmenter is off**, because it relies on the lock.
+
+### Why `nofilelock` exists: Proxmox turns image locking off
+
+qemu has its own image locking, designed for exactly this handoff. For each permission it holds, such as writing, it locks one byte of the image. The destination of a live migration opens the image without the write permission, so it takes no write lock, and the write lock passes from source to destination at the switchover. Exactly one node holds it at every moment.
+
+**Proxmox VE switches it off.** Its qemu build has carried a patch since 2020 that changes the default for image locking to `off` ([the patch on pve-devel](https://lists.proxmox.com/pipermail/pve-devel/2020-March/042124.html)). The stated reason was that qemu's `auto` mode checked whether the *system* supports the locks, not whether the *storage* does, and it broke on NFS. The patch is still there in Proxmox VE 9.2: a running VM holds no lock at all on its disk images.
+
+So in a Proxmox cluster nothing at the image level stops two nodes from writing the same disk. The cluster layer stops Proxmox itself from starting a VM twice, but nothing stops a second writer that comes from outside it: a `dd` or `qemu-img` run on the wrong node, a backup agent, a script, or a bug.
+
+Turning qemu's locking back on would not fix this on cetrafs, either. qemu takes `fcntl` byte-range locks, and cetrafs keeps those local to each node: only `flock(2)` locks are cluster-wide.
+
+That left cetrafs with two choices for Proxmox: keep its own lock and refuse live migration, or give the lock up. **`nofilelock` was added so that live migration on Proxmox works at all.** It lines cetrafs up with Proxmox's permissive posture rather than keeping its own protection.
+
+We think that is the wrong trade. `nofilelock` removes all protection, from every file, on every node, for as long as the volume is mounted, to allow an operation that affects one file and lasts a few seconds. Use it because Proxmox needs it today, not because it is a sound design.
+
+### The fix: a `flock` locking mode in qemu
+
+The proper fix is small and lives in qemu. qemu's permission system already knows the right moment to take and release the write lock during a migration. What's missing is a way to make it use a lock that cetrafs shares between nodes. A new `locking=flock` mode for qemu's file driver would do it:
+
+- taking the write permission calls `flock(LOCK_EX)` on the image;
+- giving it up calls `flock(LOCK_UN)`.
+
+Proxmox would carry that qemu patch alongside its own, and the storage would ask for `locking=flock` on cetrafs volumes. The lock would then follow the VM across a live migration, with exactly one node holding it at any moment, and a writer from outside qemu would be refused.
+
+This is a proposal: neither qemu nor Proxmox has it yet. Until then, Proxmox clusters mount with `nofilelock`. The cetrafs development branch is getting ready for it: on a default mount, `flock(LOCK_UN)` hands back the lock on one file for the length of a handoff, and `flock(LOCK_EX)` takes it back. Together with qemu's `flock` mode, that would make `nofilelock` unnecessary: every file stays locked except during its own migration.
 
 ### Why the mode applies to the whole cluster
 

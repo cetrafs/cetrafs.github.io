@@ -79,7 +79,7 @@ grep file_lock /proc/fs/cetrafs/*/info     # file_lock: off
 The lock mode applies to the whole cluster. The first node to mount sets it and the rest inherit it, and a node that asks for a conflicting mode is refused. Putting the same option in every node's `fstab` keeps them consistent whatever order they boot in.
 
 {{< callout type="note" title="Who prevents double writes now?" >}}
-With `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. Proxmox HA and qemu's own locking do that job, just as vSphere does on top of VMFS. cetrafs still makes the *sequential* handoff coherent: under `nofilelock` it reads each file's metadata fresh from the device, so the destination always sees the source's final state.
+With `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. Only Proxmox's cluster layer keeps writers apart: a VM belongs to one node, and HA fences a failed node before restarting its VMs. qemu's own image locking is turned off in Proxmox, so nothing protects an image from a writer outside Proxmox. See [why `nofilelock` exists](/docs/concepts/locking/#why-nofilelock-exists-proxmox-turns-image-locking-off). cetrafs still makes the *sequential* handoff coherent: under `nofilelock` it reads each file's metadata fresh from the device, so the destination always sees the source's final state.
 {{< /callout >}}
 
 ## 5. Register the storage in Proxmox
@@ -141,7 +141,7 @@ cat /proc/fs/cetrafs/*/info       # free space, Zone Group ownership, counters
 
 - One LUN, mounted on every Proxmox node and registered as **shared** directory storage.
 - VMs whose disks live directly on cetrafs, using **raw + cache=none + aio=threads**.
-- **Live migration** through `nofilelock`, with Proxmox HA and qemu preventing double writes.
+- **Live migration** through `nofilelock`, with Proxmox's cluster layer and HA keeping writers apart.
 
 ## Next
 

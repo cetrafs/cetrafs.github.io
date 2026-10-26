@@ -39,7 +39,7 @@ grep file_lock /proc/fs/cetrafs/*/info      # file_lock: off
 
 ## Who prevents double writes?
 
-Under `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. **Proxmox HA and qemu's own image locking take on that job**, just as vSphere HA does on top of VMFS. Don't use `nofilelock` with a workload that has nothing above it to keep writers apart.
+Under `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. **Only the layer above keeps writers apart.** On Proxmox VE that is the cluster layer alone: a VM's configuration belongs to one node, and HA fences a failed node before restarting its VMs. qemu's own image locking doesn't help: Proxmox turns it off, and its locks wouldn't reach other nodes on cetrafs anyway. Nothing stops a writer from outside Proxmox, such as a `dd` or `qemu-img` on the wrong node. See [why `nofilelock` exists](/docs/concepts/locking/#why-nofilelock-exists-proxmox-turns-image-locking-off). Don't use `nofilelock` with a workload that has nothing above it to keep writers apart.
 
 What cetrafs still guarantees is a coherent **sequential handoff**. Under `nofilelock` it reads each file's metadata (its extent tree and inode record) fresh from the device on every access. When the destination takes over, it sees the source's final state, even if a snapshot rewrote the image's layout just before the migration. The cost is extra metadata reads on the data path.
 
