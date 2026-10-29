@@ -92,6 +92,8 @@ The array performs compare-and-write atomically on one logical block, 512 bytes 
 - **One inode per 4 KiB block**, even though an inode record is only about 200 bytes. With records packed together, one node's write could overwrite a neighbouring record another node had just changed. One record per block makes that impossible by construction.
 - Blocks are a fixed **4 KiB**. A 512-byte block size was evaluated and rejected: it would mean roughly eight times as many metadata round trips and one directory entry per block.
 
+On a **4Kn** target, whose logical block is 4 KiB, the atomic unit is the whole block. The records still sit in the first 512 bytes, so the same layout works unchanged: a compare-and-write covers the whole block. Since 0.9.1 every path handles that case. Before it, flushing or closing a file on such a device failed with `EINVAL`.
+
 ## Three problems, three mechanisms
 
 When several nodes share one disk, three different things can go wrong, and cetrafs handles each with its own mechanism. All three are built on the same primitive, atomic compare-and-write.

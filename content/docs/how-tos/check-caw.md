@@ -31,7 +31,8 @@ cetrafs: caw probe: /dev/sdb -> class=scsi logical_block_size=512 max_caw_blocks
 
 | Result | Meaning |
 |---|---|
-| `class=scsi`, `max_caw_blocks` ≥ 1 | The LUN supports atomic compare-and-write. It can back a multi-node cluster. One 512-byte block is enough. |
+| `class=scsi`, `max_caw_blocks` ≥ 1 | The LUN supports atomic compare-and-write. It can back a multi-node cluster. One logical block is enough, whether it is 512 bytes or 4 KiB. |
+| `logical_block_size=4096` | A 4Kn target, for example TrueNAS with a 4 KiB iSCSI extent. Supported since 0.9.1; with an earlier release, `fsync` and `close` on it fail with `EINVAL`. |
 | `max_caw_blocks=0` | No atomic CAW. **Single-node only.** If one host has the volume mounted, a mount on any other host fails with `EBUSY`. |
 | `class=nvme` | NVMe's fused compare-and-write cannot be called from a kernel module, so cetrafs treats the device as having no CAW. **Single-node only.** |
 | `discover(...) failed` | cetrafs couldn't determine the capability. A mount on this device is **refused** rather than assuming either answer. |

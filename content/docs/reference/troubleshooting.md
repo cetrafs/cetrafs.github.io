@@ -18,6 +18,7 @@ toc: true
 | `EOPNOTSUPP` from `flock` | Shared lock requested, or `LOCK_EX` on a default mount for a file this node doesn't have open for writing | Use `LOCK_EX`, on a descriptor opened for writing |
 | `EWOULDBLOCK` from `flock -x -n` on a default mount | The lock was suspended and another node has taken the file since | Expected after a handoff. It never takes the lock from the peer: wait, or let the peer close the file |
 | `EBUSY` from `flock -u` | The defragmenter is moving the file | Try again when the pass ends |
+| `EINVAL` from `fsync`, `fdatasync` or `close`, or qemu failing the first flush after a write | The device's logical block is 4 KiB (a 4Kn target), and the module is older than 0.9.1 | Upgrade to 0.9.1 or later. Nothing on the volume was damaged: the update failed instead of writing |
 | `EINVAL` from `rename` | `RENAME_EXCHANGE` or `RENAME_WHITEOUT` | Not supported |
 
 ## Mount failures

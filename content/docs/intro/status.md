@@ -19,7 +19,7 @@ The current version is **{{< version >}}**. Its on-disk format is `0x0009`, and 
 |---|---|---|
 | Kernels | `7.0.14`, `7.1.8+deb13` (Debian); Proxmox VE `7.0.14-*-pve` | Older kernels are not supported. The code is new, so other kernels are unverified: they may fail to build or load. |
 | Architectures | arm64, amd64 | The on-disk format is little-endian but written to be portable across byte order. Only little-endian hosts have been tested. Keep a cluster on one architecture. |
-| Storage | Any block device for a single node; for a cluster, a LUN with SCSI COMPARE AND WRITE | NVMe's fused compare-and-write is not wired up, so an NVMe device is single-node only. |
+| Storage | Any block device for a single node; for a cluster, a LUN with SCSI COMPARE AND WRITE, with 512-byte or 4 KiB logical blocks (4Kn since 0.9.1) | NVMe's fused compare-and-write is not wired up, so an NVMe device is single-node only. |
 
 ## What has been verified
 
