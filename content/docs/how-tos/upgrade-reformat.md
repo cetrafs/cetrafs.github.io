@@ -5,7 +5,7 @@ description: "Move a volume to a new cetrafs on-disk format by evacuating, refor
 toc: true
 ---
 
-cetrafs has **no on-disk backward compatibility** during the beta. A format version change is a clean break: a volume whose format version, or an unknown *incompatible* feature bit, the module doesn't understand is refused at mount. An unknown *read-only-compatible* bit only forces a read-only mount.
+cetrafs has **no on-disk backward compatibility** during the beta, with one temporary exception, described [below](#from-08x-to-09). A format version change is otherwise a clean break: a volume whose format version, or an unknown *incompatible* feature bit, the module doesn't understand is refused at mount. An unknown *read-only-compatible* bit only forces a read-only mount.
 
 Not every release changes the format. Check the release notes. A release that keeps the format only needs the module and tools updated on every node.
 
@@ -15,6 +15,14 @@ Not every release changes the format. Check the release notes. A release that ke
 2. Node by node: migrate the VMs away, unmount, reload the module (or reboot), mount again.
 
 Before you mix versions in one cluster, check that the release notes say the versions are compatible. The multi-node test suite assumes every node runs the same `cetrafs.ko` build.
+
+## From 0.8.x to 0.9
+
+0.9 writes format `0x0009` but still mounts, checks and grows `0x0008` volumes from 0.8.x. So upgrading from 0.8.x needs **no reformat**: follow [Upgrading a release that keeps the format](#upgrading-a-release-that-keeps-the-format).
+
+An `0x0008` volume stays readable by 0.8.x until it is **grown**. [Growing](/docs/how-tos/grow-volume/) stamps it `0x0009`, and from then on 0.8.x modules and tools refuse it. Upgrade every node before you grow, and don't roll back to 0.8.x afterwards.
+
+Support for `0x0008` is transitional and will be dropped in a later release.
 
 ## Upgrading across a format change
 

@@ -40,7 +40,7 @@ make
 `make` builds both halves:
 
 - `kmod/cetrafs.ko` is the kernel module.
-- `userspace/mkfs.cetra`, `userspace/fsck.cetra` and `userspace/defrag.cetra` are the tools.
+- `userspace/mkfs.cetra`, `userspace/fsck.cetra`, `userspace/defrag.cetra` and `userspace/growfs.cetra` are the tools.
 
 ## 3. Load the module
 
@@ -206,7 +206,7 @@ Never use `rmmod -f` on cetrafs. A plain `rmmod` refuses while a volume is mount
 
 ## What you learned
 
-- cetrafs is a kernel module plus three tools. `mkfs.cetra` lays out Zone Groups, Block Groups, a Node Registry and per-node journals.
+- cetrafs is a kernel module plus four tools. `mkfs.cetra` lays out Zone Groups, Block Groups, a Node Registry and per-node journals.
 - Mounting **registers** the host, **claims** a Zone Group and starts a **heartbeat**.
 - The live state is in `/proc/fs/cetrafs/<dev>/`.
 - A device without COMPARE AND WRITE, such as this loop device, is single-node only.

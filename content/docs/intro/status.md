@@ -11,7 +11,7 @@ cetrafs is young. It has been heavily reviewed, fuzzed and crash-tested, but it 
 
 ## Current release
 
-The current version is **{{< version >}}**. The on-disk format can change between releases and there is **no in-place migration**. Moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade to a new format version](/docs/how-tos/upgrade-reformat/).
+The current version is **{{< version >}}**. Its on-disk format is `0x0009`, and it also mounts `0x0008` volumes from 0.8.x without a reformat. The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
 
 ## Supported platforms
 
@@ -25,7 +25,7 @@ The current version is **{{< version >}}**. The on-disk format can change betwee
 
 The release gate is a scripted matrix (`tests/release-matrix.sh`) plus a multi-node suite run against real hardware:
 
-- **Loop-device integration suite** (`make check`): over 1,200 assertions covering every feature end to end, including simulated cross-node scenarios.
+- **Loop-device integration suite** (`make check`): 164 suites and about 1,757 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
 - **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath. A second, on 0.7.4, used a three-node amd64 Proxmox cluster on a commodity iSCSI LUN: all 27 scenarios passed, three times in a row.
 - **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, cuts power without a flush first, and tears blocks at every sector boundary.
 - **Fuzzing** of the mount and `fsck` parsing boundaries with hostile images.
@@ -39,7 +39,7 @@ These are design decisions, not missing features: POSIX ACLs, special files (`mk
 
 ## On the roadmap
 
-- **Growing a volume when its LUN grows** (`extendfs`): an ext4-style grow that appends new Block Groups to the end of the device, offline first and later live. This needs one format change to reserve table space. Shrinking will not be supported.
+- **Growing a mounted volume.** Since 0.9, [`growfs.cetra`](/docs/how-tos/grow-volume/) grows a volume into a larger device, but only while it is unmounted on every node. Growing it live, while nodes have it mounted, comes next. Shrinking will not be supported.
 
 ## A sensible trial plan
 
@@ -52,7 +52,7 @@ cetrafs is free software. Its two halves are licensed differently:
 | Part | License |
 |---|---|
 | Kernel module (`kmod/`) | [GPL, version 2 or later](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) (`GPL-2.0-or-later`). It links against the Linux kernel, so there is no other option for it. |
-| Userspace tools (`mkfs.cetra`, `fsck.cetra`, `defrag.cetra`) | [AGPL, version 3 or later](https://www.gnu.org/licenses/agpl-3.0.html) (`AGPL-3.0-or-later`), or a **commercial license** for those whom the AGPL's source-availability terms don't suit. Contact Massimo Cetra through [GitHub](https://github.com/ctrix). |
+| Userspace tools (`mkfs.cetra`, `fsck.cetra`, `defrag.cetra`, `growfs.cetra`) | [AGPL, version 3 or later](https://www.gnu.org/licenses/agpl-3.0.html) (`AGPL-3.0-or-later`), or a **commercial license** for those whom the AGPL's source-availability terms don't suit. Contact Massimo Cetra through [GitHub](https://github.com/ctrix). |
 | On-disk format header (`include/cetrafs.h`) | Any of the three, so each half can use it. The format itself is documented and anyone may implement it. |
 
 Each source file's `SPDX-License-Identifier` line is authoritative for that file. See [`LICENSE`](https://github.com/cetrafs/cetrafs/blob/main/LICENSE) in the repository.

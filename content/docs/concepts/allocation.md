@@ -11,7 +11,7 @@ Two nodes that both need a new block must never pick the same one. A cluster fil
 
 ## Partition the disk instead
 
-cetrafs divides the data area into **Zone Groups**, each a contiguous span of **Block Groups**. A Block Group is a self-contained region: a header block, its own data bitmap, then its data blocks (1 GiB each by default).
+cetrafs divides the data area into **Block Groups**. A Block Group is a self-contained region: a header block, its own data bitmap, then its data blocks (1 GiB each by default). Block Groups are gathered into **Zone Groups**. Each Block Group records which Zone Group owns it; `mkfs.cetra` deals them out round-robin, so Block Group *b* starts in Zone Group *b* mod *Z*.
 
 A Zone Group has **at most one owner** at any moment, claimed by compare-and-write. **A node allocates new blocks only from Zone Groups it owns.** Two nodes therefore never draw from the same free-space pool: they work in disjoint parts of the disk by construction, so there is nothing to race for. In the steady state allocation needs **no cross-node coordination at all**. Only claiming or handing over a Zone Group does.
 
@@ -20,6 +20,19 @@ A Zone Group has **at most one owner** at any moment, claimed by compare-and-wri
 At mount, a node claims **one** Zone Group, if it doesn't already own one. It claims **one more** only when every Block Group in the ones it owns is full. When an extra Zone Group it owns becomes empty, it gives it back.
 
 This is deliberate. If a node claimed everything available at mount, the first node to mount a fresh volume would own the whole disk and every later node would starve. Taking only what it needs keeps space available to everyone. It also means the Zone Group count limits how many nodes can write at once: **with N Zone Groups, at most N nodes can hold write capacity at the same time.** A node that mounts when every Zone Group is taken shows `write_ready: no` until one frees up.
+
+## Claiming and handing back Block Groups
+
+Since 0.9, ownership also moves one Block Group at a time, not only one Zone Group at a time. A Block Group can belong to **no** Zone Group: it is then free for any node to take.
+
+- **Claiming.** When every Block Group in a node's Zone Groups is full and there is no Zone Group left to claim, the node claims an unowned Block Group into one of its Zone Groups, with one compare-and-write on the Block Group's own record. Two nodes racing for the same one can't both win.
+- **Handing back.** A node gives back every Block Group it owns that is **completely empty**, even inside a Zone Group it keeps. Before 0.9 only a whole empty Zone Group could be given back, so a node holding a Zone Group with 2 used Block Groups out of 100 kept all 100, and the other nodes saw a full volume. Now it keeps the 2 and the other 98 become available to everyone.
+
+The rule for giving space back is the same as before: only what is provably empty. Nothing points into an empty Block Group, and ownership only decides who may allocate from it next, so handing it back can't affect any data. Each Zone Group keeps a count of the free space in unowned Block Groups (`pool_free_blocks`), so `df` keeps counting space that has been handed back.
+
+This is also what makes [growing a volume](/docs/how-tos/grow-volume/) simple: it adds new Block Groups and touches no Block Group that already exists.
+
+## Taking over from a dead node
 
 Zone Groups held by a **stale** node can be taken over. The node taking over replays the dead node's journal first, then re-derives the Zone Group's free counts from its bitmaps, so any drift a crash left behind is corrected.
 
@@ -36,6 +49,8 @@ Each queue holds 65,536 entries, enough for the frees from deleting a large, fra
 ## Keeping free counts cheap
 
 Each Block Group and Zone Group caches its free-block count. Updating those counts on the device for every block allocated would add a synchronous write per block. A 1 MiB write once went from about 2 s to about 40 s because of exactly that. So the changes **accumulate in memory**, and the owner applies them with one compare-and-write per Block Group at **durability boundaries**: file close, `fsync`, namespace-lock release, `sync`, unmount.
+
+A file held open for days, such as a VM image, carries its pending change for days, possibly across a change of ownership after which the new owner has already recounted the Block Group from its bitmap. Since 0.9, a recount discards any change still pending from before it, so the change can't be counted twice. Before 0.9 a Zone Group that left a node and came back could let it through: free counts went wrong, and where the result would have gone below zero the node logged the refusal every heartbeat and stopped handing back unneeded Zone Groups. File data was never at risk, because the bitmaps were always right.
 
 Allocation bitmap blocks follow the same rule, with a correctness constraint: a reference must never reach the disk before what it refers to. The bitmap is flushed before the inode record that points at the new blocks, at the same boundaries. If it weren't, a node dying at the wrong moment could leave blocks referenced by a file but marked free, and the allocator could then give them to a second file.
 

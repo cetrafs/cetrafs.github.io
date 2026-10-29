@@ -48,6 +48,12 @@ toc: true
 | Orphan inodes, drifted counts after an unclean shutdown | Leftovers from operations that weren't acknowledged (per-fsync consistency). `-r` repairs them. |
 | Cross-file overlap, unreadable inode, dangling entry | `-r` refuses: these need a human decision. Keep the image, and report it. |
 
+## Messages in the kernel log
+
+| Message | Meaning |
+|---|---|
+| `BG N free delta … would take the count below zero`, repeated every heartbeat, with `surplus ZG release pass failed` | A 0.8.x bug: a stale free-count change was applied after a recount. Fixed in 0.9. Upgrade, then run `fsck.cetra -r` to recount. No file data is affected. |
+
 ## Counters worth a second look
 
 | Counter (in `info`) | Concerning when |

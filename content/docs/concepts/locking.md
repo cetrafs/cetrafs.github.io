@@ -86,7 +86,7 @@ Proxmox would carry that qemu patch alongside its own, and the storage would ask
 
 This is a proposal: neither qemu nor Proxmox has it yet. Until then, Proxmox clusters mount with `nofilelock`.
 
-cetrafs already has its side of it. Since {{< version >}}, a default mount can [hand one file's lock over](#handing-one-files-lock-over-on-a-default-mount) with `flock(LOCK_UN)` and take it back with `flock(LOCK_EX)`. Together with qemu's `flock` mode, that makes `nofilelock` unnecessary: every file stays locked, except the image being migrated, and only during its own handoff.
+cetrafs already has its side of it. Since 0.8.2, a default mount can [hand one file's lock over](#handing-one-files-lock-over-on-a-default-mount) with `flock(LOCK_UN)` and take it back with `flock(LOCK_EX)`. Together with qemu's `flock` mode, that makes `nofilelock` unnecessary: every file stays locked, except the image being migrated, and only during its own handoff.
 
 ### Why the mode applies to the whole cluster
 
@@ -98,7 +98,7 @@ Under `nofilelock` a process can still claim the same exclusive cross-node lock 
 
 ## Handing one file's lock over on a default mount
 
-Since {{< version >}}, the same two calls work on a default mount, the other way round: every file is locked, and you unlock one file for as long as a handoff needs. On a file this node has open for writing:
+Since 0.8.2, the same two calls work on a default mount, the other way round: every file is locked, and you unlock one file for as long as a handoff needs. On a file this node has open for writing:
 
 - **`flock(LOCK_UN)` suspends this node's lock on the file**, with the file still open. cetrafs first makes the file durable, as a close would: data, extent tree, allocation bitmaps and inode record are on the device before the lock goes. Another node can then open the file, for writing too, and its write-open takes the lock.
 - **`flock(LOCK_EX)` takes the lock back.** It never takes it from another node, even a dead one: if a peer holds it, `LOCK_EX|LOCK_NB` fails with `EWOULDBLOCK`, and a blocking `LOCK_EX` waits until the peer lets go. Once it has the lock again, cetrafs drops its cached view of the file and reads it fresh, so it sees what the other node wrote.

@@ -8,7 +8,7 @@ toc: true
 ## Synopsis
 
 ```text
-mkfs.cetra <blockdev> [-z ZGs] [-b BG_MiB] [-N inodes] [-J MiB] [-M nodes] [-n] [-f]
+mkfs.cetra <blockdev> [-z ZGs] [-b BG_MiB] [-N inodes] [-J MiB] [-M nodes] [-s size] [-n] [-f]
 ```
 
 The device **must be the first argument**. Options follow it.
@@ -22,6 +22,7 @@ The device **must be the first argument**. Options follow it.
 | `-N inodes` | Total inodes | 1 per 4 MiB of device, capped at 65,536 | ≥ 1024; must fit a 32-bit count |
 | `-J MiB` | Journal size **per node**, in MiB | 2; shrunk so the total across all node slots stays near 5% of the device | `0` disables journaling; otherwise at least 12 KiB per node |
 | `-M nodes` | Node Registry capacity (maximum cluster nodes) | 64 | 1–64 |
+| `-s size` | Format only this much of the device and leave the rest unused, for a later [grow](/docs/reference/growfs/). Takes a `K`, `M`, `G` or `T` suffix; a bare number is MiB. | The whole device | A multiple of 4 KiB |
 | `-n` | Dry run: compute and print the geometry, write nothing | | |
 | `-f` | Force: overwrite a device that looks non-empty. **Never** overrides a live peer. | | |
 
@@ -36,7 +37,7 @@ Both have no effect on normal-sized LUNs, and passing `-b` or `-J` explicitly ov
 
 ## What it writes
 
-The superblock, the Zone Group table, the Block Group table, the global inode bitmap and inode table, an empty Node Registry, the pending-free queues, the per-node journal areas, every Block Group header and bitmap, and the root directory (inode 1). Every structure gets its checksum. Block Groups are distributed evenly across Zone Groups: each Zone Group gets `B / Z` of them, and the first `B mod Z` Zone Groups get one extra.
+The superblock, the Zone Group table, the Block Group table, the global inode bitmap and inode table, an empty Node Registry, the pending-free queues, the per-node journal areas, every Block Group header and bitmap, and the root directory (inode 1). Every structure gets its checksum. Block Groups are dealt out to Zone Groups round-robin: Block Group *b* goes to Zone Group *b* mod *Z*, so each Zone Group gets `B / Z` of them and the first `B mod Z` get one extra. The volume is stamped format version `0x0009`.
 
 ## Output
 
@@ -58,4 +59,5 @@ mkfs.cetra /dev/sdb -n          # preview
 mkfs.cetra /dev/sdb             # defaults
 mkfs.cetra /dev/sdb -M 8 -z 32  # 8 nodes, 32 Zone Groups
 mkfs.cetra /dev/sdb -f          # reformat a device that held data
+mkfs.cetra /dev/sdb -s 500G     # use 500 GiB now, grow into the rest later
 ```

@@ -10,7 +10,7 @@ This is the recommended way to install cetrafs on Debian and Proxmox VE. There a
 | Package | Contents |
 |---|---|
 | `cetrafs-dkms` | The kernel module source plus DKMS wiring, so `cetrafs.ko` is rebuilt automatically on every kernel upgrade. |
-| `cetrafs-tools` | `mkfs.cetra`, `fsck.cetra` and `defrag.cetra`, installed in `/usr/sbin`. |
+| `cetrafs-tools` | `mkfs.cetra`, `fsck.cetra`, `defrag.cetra` and `growfs.cetra`, installed in `/usr/sbin`. |
 
 Every release of cetrafs publishes both packages on the [GitHub releases page](https://github.com/cetrafs/cetrafs/releases). On Proxmox VE, [Install on Proxmox VE](/docs/how-tos/install-proxmox/) covers the same steps plus the storage plugin.
 
@@ -40,7 +40,7 @@ The release packages are built by CI, which doesn't run the test suites. Those n
 ```sh
 dkms status cetrafs                  # cetrafs/<version>, <kernel>, <arch>: installed
 modinfo cetrafs | head -3
-which mkfs.cetra fsck.cetra defrag.cetra
+which mkfs.cetra fsck.cetra defrag.cetra growfs.cetra
 ```
 
 You don't need to load the module by hand or add it to `/etc/modules-load.d`. The module declares the `fs-cetrafs` alias, so the first `mount -t cetrafs` loads it, just as with an in-tree filesystem. That includes mounts from `/etc/fstab` at boot and mounts made by a cluster manager.

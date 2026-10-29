@@ -53,7 +53,7 @@ Under `nofilelock`, `flock` claims the lock:
 | `flock(fd, LOCK_UN)` or closing all duplicates of the fd | Releases it |
 | `flock(fd, LOCK_SH)` | `EOPNOTSUPP`: only exclusive locks exist |
 
-On a default mount, since {{< version >}}, `flock` suspends and resumes the automatic lock of a file this node has open for writing. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount).
+On a default mount, since 0.8.2, `flock` suspends and resumes the automatic lock of a file this node has open for writing. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount).
 
 | Call | Result |
 |---|---|

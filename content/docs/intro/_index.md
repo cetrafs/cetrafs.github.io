@@ -10,7 +10,7 @@ cetrafs is a **clustered, shared-disk filesystem for Linux**. Several hosts moun
 It ships as two parts:
 
 - an **out-of-tree kernel module**, `cetrafs.ko`, which registers the `cetrafs` filesystem type;
-- three **userspace tools**: `mkfs.cetra` (create a volume), `fsck.cetra` (check and repair one) and `defrag.cetra` (defragment a file online).
+- four **userspace tools**: `mkfs.cetra` (create a volume), `fsck.cetra` (check and repair one), `defrag.cetra` (defragment a file online) and `growfs.cetra` (grow a volume into a larger device).
 
 ## How it differs from other cluster filesystems
 

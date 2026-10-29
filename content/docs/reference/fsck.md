@@ -24,7 +24,7 @@ Refuses to run if the volume is **mounted locally**, or if its Node Registry has
 
 | Pass | Checks |
 |---|---|
-| 1. Structural | Superblock checksum and region map; Zone Group and Block Group descriptors and headers; Zone Group ↔ Block Group ownership contiguity; Node Registry rows |
+| 1. Structural | Format version (`0x0008` or `0x0009`); superblock checksum and region map, including what past grows recorded; the Block Group table chain (no loop, no segment outside its place, as many descriptors as Block Groups); Zone Group and Block Group descriptors and headers; every Block Group owned by a real Zone Group or by none, with no two Block Groups overlapping; Node Registry rows |
 | 2. Cluster metadata | Per-node journal flags and slots; pending-free queue entries |
 | 3. Content | Inode bitmap and data bitmaps against the extent trees (all depths), in both directions; cross-file block overlap; cached free counts against bitmaps; leaks |
 | 4. Namespace | Every directory's entries and block tails; `.` and `..`; link counts against referring entries; directory entry type against inode mode; reachability from the root |
@@ -35,6 +35,7 @@ Refuses to run if the volume is **mounted locally**, or if its Node Registry has
 |---|---|
 | Bitmap bit disagrees with the extent trees (leaked, or would be double-allocated) | Bit set to match the trees |
 | Block Group or Zone Group cached free count disagrees with its bitmap | Count recomputed |
+| A Zone Group's count of free space in unowned Block Groups (`pool_free_blocks`) disagrees with those Block Groups | Count recomputed |
 | `nlink` disagrees with the entries naming the inode | `nlink` corrected |
 | Orphan inode with `nlink = 0` | Freed |
 | Orphan inode with `nlink > 0` (lost directory entry) | Linked into `/lost+found` as `#<ino>` |

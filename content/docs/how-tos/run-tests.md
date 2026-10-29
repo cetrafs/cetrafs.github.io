@@ -5,12 +5,14 @@ description: "Run the loop-device suite, the crash rig, the soak and the release
 toc: true
 ---
 
+For what each tier exists to catch, and what isn't tested yet, see [How cetrafs is tested](/docs/concepts/testing/).
+
 ## Which suite tests what
 
 | Command | Needs | Covers |
 |---|---|---|
 | `make check-fsck` | Nothing (no module, no mount) | Image-level `fsck` checks, with every check fed a real injected fault. Runs in seconds. |
-| `make check` | root, matching kernel headers, loop devices | The full loop-backed integration suite: every feature end to end, plus simulated cross-node scenarios. Never touches a real device. |
+| `make check` | root, matching kernel headers, loop devices, about 7 GiB free (`CT_MIN_FREE_MB`) | The full loop-backed integration suite: every feature end to end, plus simulated cross-node scenarios. Never touches a real device. |
 | `make check-one SUITE=kernel/<name>.sh` | Same as `check` | One suite, e.g. `kernel/nslock.sh`. |
 | `make check-slow` | Same, plus time | Multi-GiB sparse-file tests (default 10 GiB; override with `CETRAFS_SPARSE_TEST_SIZE_MB`). |
 | `make check-crash` | `dm-log-writes`, `dm-flakey` | The crash-consistency rig: replays to every durability boundary, a power-loss sweep, and power cuts without a flush first. |

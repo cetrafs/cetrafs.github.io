@@ -5,7 +5,7 @@ description: "The cetrafs on-disk layout: superblock, Zone and Block Group descr
 toc: true
 ---
 
-The authoritative specification is `include/cetrafs.h` in the source tree. The kernel module and the userspace tools both compile against it. This page summarises it for format version **`0x0008`**.
+The authoritative specification is `include/cetrafs.h` in the source tree. The kernel module and the userspace tools both compile against it. This page summarises it for format version **`0x0009`**.
 
 ## Conventions
 
@@ -34,12 +34,14 @@ bg_regions_start      Block Group regions 1 .. B
 
 Every region start is a superblock field. Mount checks the whole map: every region starts after block 0, nothing wraps, everything fits inside `total_blocks`, no regions overlap, and every count fits its region.
 
+That is the layout `mkfs.cetra` writes. A [grow](/docs/reference/growfs/) moves none of it. It adds new Block Group regions after the existing ones, and a **tail reserve** after those that holds a new segment of the Block Group table (see [below](#block-group-table-chain)). The Zone Group count never changes, so the Zone Group table and the pending-free queues never move either. A second grow places its regions after the first grow's tail reserve, so the Block Group data area can contain holes: it is a bounding box, `[bg_regions_start, bg_data_end)`, rather than one contiguous run.
+
 ## Superblock (block 0, 424 bytes)
 
 | Field | Meaning |
 |---|---|
 | `magic` | `0xC4553770` |
-| `version` | Format version (`0x0008`). Can change between beta releases; never migrated. |
+| `version` | Format version (`0x0009`). This release also mounts, checks and grows `0x0008` volumes from 0.8.x; that window is temporary. Otherwise the version can change between beta releases and is never migrated. |
 | `sb_bytes` | Size of the superblock structure, as a sanity check |
 | `block_size` | 4096 |
 | `total_blocks` | Device size in blocks |
@@ -54,17 +56,26 @@ Every region start is a superblock field. Mount checks the whole map: every regi
 | `node_table_start/_blocks/_count`, `node_entry_size` | Node Registry location and capacity |
 | `pending_free_start`, `pending_free_blocks_per_zg` | Pending-free queues |
 | `node_journal_start`, `node_journal_blocks` | Per-node journal area and size per node |
+| `layout_gen` | Incremented by every grow; 0 on a volume never grown |
+| `tail_reserve_start`, `tail_reserve_blocks` | Where the latest grow put its table segment; 0 if never grown |
+| `orphan_blocks` | Blocks left unusable by past grows (superseded tail reserves); reported by `growfs.cetra` |
+| `bg_data_end` | End of the Block Group data area; 0 if never grown, where the area is exactly `bg_regions_start + B × bg_size_blocks` |
+| `bg_table_next`, `bg_table_first_count` | Block Group table chain: the first appended segment, and how many descriptors the original table holds; both 0 if never grown |
 | `features_compat/_incompat/_ro_compat` | Feature bitmaps |
 | `checksum` | CRC32C |
 | `uuid` | Filesystem UUID |
 
 ## Zone Group descriptor (one block each)
 
-The **hot sector** (first 512 bytes, changed by compare-and-write) holds `zg_id`, `owner_node_id` (registry row, or `0xFFFF` for none), `free_data_blocks` (the sum of its Block Groups' free counts), `hb_seq` and `hot_checksum`. The **cold** part, fixed at mkfs time, holds `first_bg_id`, `bg_count` and `cold_checksum`.
+The **hot sector** (first 512 bytes, changed by compare-and-write) holds `zg_id`, `owner_node_id` (registry row, or `0xFFFF` for none), `free_data_blocks` (the sum of its Block Groups' free counts), `hb_seq`, `hot_checksum`, and `pool_free_blocks`: the free space in **unowned** Block Groups assigned to this Zone Group's shard (`bg_id mod Z`), so that space handed back still counts as free. The **cold** part holds `cold_checksum`. Its `first_bg_id` and `bg_count` fields are no longer used: since `0x0009`, a Zone Group doesn't record its members, each Block Group records its owner.
 
 ## Block Group descriptor and region
 
-The descriptor holds `bg_id`, `owner_zg`, `start_block`, `length_blocks`, the offsets of the header, bitmap and data within the region, `data_block_count`, the cached `free_data_blocks`, `checksum`, and `reconcile_seq`. `reconcile_seq` advances whenever a change of Zone Group ownership rewrites the free count from the bitmap, so a late update from the previous owner is detected and dropped.
+The descriptor holds `bg_id`, `owner_zg` (the owning Zone Group, or `0xFFFF` when no Zone Group owns it), `start_block`, `length_blocks`, the offsets of the header, bitmap and data within the region, `data_block_count`, the cached `free_data_blocks`, `checksum`, and `reconcile_seq`. `reconcile_seq` advances whenever a change of Zone Group ownership rewrites the free count from the bitmap, so a late update from the previous owner is detected and dropped.
+
+`owner_zg` changes while the cluster runs: a node claims an unowned Block Group, or hands an empty one back, with one compare-and-write on this record. `mkfs.cetra` assigns Block Group *b* to Zone Group *b* mod *Z*; a grow assigns the new ones the same way.
+
+Block Groups no longer have to be adjacent: a grown volume has a hole where each earlier tail reserve was. They must not overlap, and each must lie inside the data area.
 
 Each region:
 
@@ -73,6 +84,10 @@ Each region:
 ```
 
 where `dbm = ceil((length_blocks − 1) / 32769)`. A 1 GiB Block Group (262,144 blocks) has 8 bitmap blocks and 262,135 data blocks.
+
+### Block Group table chain
+
+The original Block Group table, at `bg_table_start`, never moves, and holds `bg_table_first_count` descriptors. Each grow appends a **segment**: a header block followed by one descriptor block per added Block Group. The header (`magic` `0xC4553B65`, `count`, `first_bg_id`, `next`, `checksum`) fits in one sector, so linking a new segment is one compare-and-write on the previous segment's `next` (or on the superblock's `bg_table_next` for the first). A crash between writing a segment and linking it leaves an unreferenced segment, which nothing reads: the volume stays as it was before the grow.
 
 ## Node Registry row (128 bytes)
 
@@ -86,6 +101,7 @@ where `dbm = ceil((length_blocks − 1) / 32769)`. A 1 GiB Block Group (262,144 
 | `checksum` | CRC32C |
 | `fence_epoch` | The node's lease. Incremented by whoever takes over its resources; the node fences itself when it changes. |
 | `hb_interval_secs` | The node's own heartbeat rate |
+| `caps` | Capabilities its module advertised at registration. Bit `0x1` (`NODE_CAP_LIVE_GROW`): the module understands a grown volume. A row from a module before 0.9 reads 0. |
 
 ## Per-node journal
 

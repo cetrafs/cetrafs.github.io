@@ -13,6 +13,6 @@ How-to guides assume you already know what cetrafs is and have a specific job to
 
 **Set up** · [create a volume](/docs/how-tos/create-volume/) · [mount at boot](/docs/how-tos/mount-volume/) · [enable live migration](/docs/how-tos/live-migration/) · [Proxmox storage plugin](/docs/how-tos/proxmox-plugin/) · [configure VM disks](/docs/how-tos/configure-vm-disks/)
 
-**Operate** · [monitor](/docs/how-tos/monitor/) · [tune a live mount](/docs/how-tos/tune-mount/) · [defragment](/docs/how-tos/defragment/) · [debug logging](/docs/how-tos/debug-logging/)
+**Operate** · [monitor](/docs/how-tos/monitor/) · [tune a live mount](/docs/how-tos/tune-mount/) · [defragment](/docs/how-tos/defragment/) · [grow a volume](/docs/how-tos/grow-volume/) · [debug logging](/docs/how-tos/debug-logging/)
 
 **Repair and recover** · [check and repair](/docs/how-tos/check-and-repair/) · [recover from a node failure](/docs/how-tos/recover-node-failure/) · [upgrade to a new format](/docs/how-tos/upgrade-reformat/)

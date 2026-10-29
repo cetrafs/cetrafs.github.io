@@ -67,7 +67,7 @@ Notes:
 
 ## Hand over one file on a default mount
 
-Since {{< version >}}, the same `flock -u` and `flock -x` also work on a default mount, where every file is locked. `flock -u` suspends this node's lock on that one image, and `flock -x` takes it back; every other file stays locked. It is the safer building block, but Proxmox can't use it yet: qemu would have to take and release the lock at the switchover, and neither qemu nor Proxmox does that today. Until it does, live migration on Proxmox needs `nofilelock`. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount) for what a suspended lock still protects, and [the qemu fix](/docs/concepts/locking/#the-fix-a-flock-locking-mode-in-qemu).
+Since 0.8.2, the same `flock -u` and `flock -x` also work on a default mount, where every file is locked. `flock -u` suspends this node's lock on that one image, and `flock -x` takes it back; every other file stays locked. It is the safer building block, but Proxmox can't use it yet: qemu would have to take and release the lock at the switchover, and neither qemu nor Proxmox does that today. Until it does, live migration on Proxmox needs `nofilelock`. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount) for what a suspended lock still protects, and [the qemu fix](/docs/concepts/locking/#the-fix-a-flock-locking-mode-in-qemu).
 
 ## Related
 

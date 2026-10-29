@@ -32,6 +32,19 @@ Metadata operations, on a 5 GiB iSCSI LUN with atomic CAW:
 | stat | ~21 ms |
 | *one device read / synchronous write / compare-and-write* | *~5.5 / ~38 / ~36 ms* |
 
+## Aged images
+
+A buffered write asks for the location of its data one 4 KiB block at a time. Before 0.9, each of those lookups walked the file's extent tree from the top. On a compact file that costs nothing, because the inode's own slots rule out every leaf without reading one. On a file rewritten in place for months, the leaves cover wide, overlapping ranges, so most lookups read several of them: a VM image slowed down as it aged.
+
+Since 0.9, each file remembers the last extent a lookup found, and the blocks that follow are answered from it without walking the tree. A change to the file's extent map invalidates it, and a preallocated extent is never remembered. Rewriting 1 GiB at 64 KiB into an already allocated, fragmented file, on the same FC array:
+
+| | Compact file | Fragmented, before 0.9 | Fragmented, 0.9 |
+|---|---|---|---|
+| Throughput | 1173 MB/s | 710 MB/s | **1091 MB/s** |
+| Extent-tree reads, whole run | — | 1,150,546 | **32,109** |
+
+Compact files were already on the fast path and are unchanged. `ext_cache_hits` and `ext_cache_misses` in [`info`](/docs/reference/procfs/) show whether the cache is working.
+
 ## What that means for workloads
 
 The design trades metadata speed for coherence without a lock manager. That fits **VM images**: a datastore holds a few hundred large files, each opened once and written for months. It fits **many small files badly**: a build tree, a mail spool or a home directory server would spend its time in metadata round trips. That isn't what cetrafs is for.
@@ -44,6 +57,7 @@ Most of the gap between a host's throughput and a guest's is qemu configuration,
 
 Shared arrays are noisy, and these points have led to wrong conclusions before:
 
+- **Measure the raw device in the same session.** The array is shared, and its own throughput moves. In one session the same LUN gave 564 MB/s with `dd bs=1M oflag=direct` and no filesystem at all, while cetrafs on it gave 470–543 MB/s: 83–96% of a ceiling that was itself below the range in the table above. Without the raw figure, that reads as a 30% regression in cetrafs.
 - **Use a new filename for every write run.** Rewriting an existing file reuses blocks that are already allocated and never exercises the allocator, so it measures something else.
 - **Measure durable writes.** A plain buffered `dd` measures the page cache. Use `oflag=direct` or `oflag=sync`.
 - **Quote ranges, not single numbers.** Two back-to-back runs of the same command on one node have differed by 18% on writes and 28% on reads. A single-run A/B difference smaller than about 30% tells you nothing.

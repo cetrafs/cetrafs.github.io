@@ -52,7 +52,7 @@ Every advantage on one side is paid for on the other. These are real, and none o
 - **Fencing that actually stops a host.** Pacemaker STONITH powers the node off. cetrafs increments a storage lease, and the displaced node fences itself on its next heartbeat; writes already in flight before that check still land. cetrafs closes the storage half of split-brain and leaves the rest to others, so you still need a cluster manager with fencing to run it safely on more than one host.
 - **Real quorum.** corosync can tell a partitioned cluster from a dead node. cetrafs's liveness is a heartbeat timeout, so a host that is merely slow looks the same as one that has failed.
 - **No special storage requirement.** GFS2 runs on any shared block device. cetrafs needs atomic COMPARE AND WRITE; without it a volume can only be mounted by one host.
-- **Volumes that grow.** A GFS2 filesystem can be extended. A cetrafs volume spans exactly one block device.
+- **Volumes that grow.** GFS2 grows while mounted, and with LVM across several devices. A cetrafs volume spans exactly one block device, and since 0.9 grows with it only while unmounted on every node.
 
 ## Where cetrafs is ahead
 

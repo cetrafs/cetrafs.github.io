@@ -9,7 +9,7 @@ ATS
 : *Atomic Test and Set.* VMware's name for SCSI COMPARE AND WRITE, the primitive VMFS uses for on-disk locking. The same primitive cetrafs uses.
 
 Block Group (BG)
-: A self-contained data region: a header block, a data bitmap, and data blocks. 1 GiB by default. Each belongs to one Zone Group.
+: A self-contained data region: a header block, a data bitmap, and data blocks. 1 GiB by default. Each belongs to one Zone Group, or to none: an unowned Block Group is free for any node to claim.
 
 CAW / COMPARE AND WRITE
 : SCSI command `0x89`. The array compares a block with an expected image and, only if they match, writes a new image, all as one atomic step. A mismatch returns MISCOMPARE. The only cross-node mutual-exclusion primitive in cetrafs.
@@ -69,4 +69,4 @@ STONITH
 : *Shoot The Other Node In The Head.* Fencing a host by powering it off, done by a cluster manager. Required for production multi-node cetrafs, and not done by cetrafs itself.
 
 Zone Group (ZG)
-: A contiguous span of Block Groups with at most one owner. A node allocates only from the Zone Groups it owns.
+: A set of Block Groups with at most one owner node. A node allocates only from the Block Groups of the Zone Groups it owns. Since 0.9 each Block Group records which Zone Group owns it, so membership changes over the volume's life.

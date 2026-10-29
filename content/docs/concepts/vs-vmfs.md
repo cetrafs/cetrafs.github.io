@@ -51,7 +51,7 @@ VMFS's internals aren't published the way cetrafs's format header is. The VMFS c
 ## Where cetrafs deliberately does less
 
 - **Throughput of metadata operations.** A namespace operation costs about a dozen reads and eight writes. On a LUN where each takes tens of milliseconds, that limits how fast creates and deletes can go. VMFS has had many years of work on reducing round trips.
-- **One LUN per volume.** You grow capacity by growing the LUN, not by adding extents. Growing a volume in place when its LUN grows is planned.
+- **One LUN per volume.** You grow capacity by growing the LUN, not by adding extents. Since 0.9 a volume can grow in place when its LUN grows, but only while it is unmounted on every node; VMFS grows while in use.
 - **No snapshot resignaturing.** Mounting an array-level snapshot of a volume next to the original isn't a defined workflow.
 - **No hardware offload.** Clone, copy, space reclaim and zeroing are ordinary block I/O from the host.
 - **Maturity.** VMFS has run in production for decades. cetrafs's cross-node behaviour has been tested on real multi-node hardware, but not at that scale or for that long.

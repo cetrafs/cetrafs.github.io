@@ -37,7 +37,7 @@ Reading the read-only files is safe on a live mount. `info` stays readable even 
 | `zone_group_count`, `block_group_count`, `bg_size_blocks` | Partitioning |
 | `inodes_count`, `free_inodes` | Inode capacity and live free count |
 | `total_data_blocks`, `free_data_blocks` | Data capacity and free count |
-| `zg N: owner=… first_bg=… bg_count=… free_data_blocks=…` | One line per Zone Group. `owner` is a row index, `none`, or marked `(this node)`. |
+| `zg N: owner=… block_groups=… free_data_blocks=…` | One line per Zone Group. `owner` is a row index, `none`, or marked `(this node)`. `block_groups` is how many Block Groups the Zone Group owns right now; it changes as nodes claim free Block Groups and hand empty ones back. |
 
 Free counts for Zone Groups that other nodes own are refreshed at most once every `bg_sweep_min_secs` (30 s by default), so polling this file doesn't discard the allocator's cache. They can be up to that many seconds old.
 
@@ -91,6 +91,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | `giveback_blocks` | Preallocated blocks released because an extent split had no room. A last resort that should stay at or near zero. |
 | `tree_blocks` | External extent-tree blocks (leaf or interior) written. Nonzero means some file outgrew its four inline extent slots. |
 | `tree_reads` | External extent-tree blocks read during lookups. Should stay close to a couple per lookup, however fragmented the file. |
+| `ext_cache_hits`, `ext_cache_misses` | Lookups answered by the extent each file remembers from its last lookup, against those that walked the tree. On a sequential write `hits` should far outnumber `misses`; if it doesn't move, the cache isn't working and a fragmented image is paying for a tree walk on every block. See [Aged images](/docs/concepts/performance/#aged-images). |
 | `lock_suspends`, `lock_resumes` | Files whose lock this node suspended with `flock(LOCK_UN)` on a default mount, and took back with `flock(LOCK_EX)`. A suspension also ends when the file is closed, so the two needn't match; a gap that keeps growing while files stay open means something unlocks files and never takes them back. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount). |
 | `file_cache_drops`, `file_cache_reconciles` | Times this node dropped a file's cached extent tree and pages because a peer had republished the file, and the reconciles that followed. Drops should be about 0 on a node writing its own files, and every drop should be followed by a reconcile; `drops` running ahead of `reconciles` means files are stuck on the slow, uncached path. |
 
@@ -109,7 +110,8 @@ These counters cover the whole module, not one mount: they include every volume 
 One line per Node Registry row that isn't free:
 
 ```text
-node 1: state=REGISTERED uuid=… hb_seq=4711 last_seen=1792540000 label=pve2 stale=no (this node)
+node 1: state=REGISTERED uuid=… hb_seq=4711 last_seen=1792540000 label=pve2 caps=0x1 stale=no (this node)
+live_grow_ready: yes
 ```
 
 | Field | Meaning |
@@ -119,7 +121,10 @@ node 1: state=REGISTERED uuid=… hb_seq=4711 last_seen=1792540000 label=pve2 st
 | `hb_seq` | Heartbeat counter, incremented every heartbeat |
 | `last_seen` | Unix time of the last heartbeat. A clean unmount backdates it so peers see the departure at once. |
 | `label` | Hostname, informational only |
+| `caps` | Capabilities the node's module advertised when it registered. `0x1` means it understands a grown volume (0.9 or later); `0x0` is a module from before 0.9. |
 | `stale` | Whether **this** node considers that peer dead |
+
+After the node lines, `live_grow_ready: yes|no` says whether every registered node advertises `0x1`. `no` means at least one registered node runs a module older than 0.9, which would refuse the volume once it has been [grown](/docs/how-tos/grow-volume/).
 
 ## `controls` (writable)
 

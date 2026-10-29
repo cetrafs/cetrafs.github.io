@@ -28,7 +28,7 @@ Then install the userspace tools:
 
 ```sh
 make userspace
-sudo install -m 0755 userspace/mkfs.cetra userspace/fsck.cetra userspace/defrag.cetra /usr/local/sbin/
+sudo install -m 0755 userspace/mkfs.cetra userspace/fsck.cetra userspace/defrag.cetra userspace/growfs.cetra /usr/local/sbin/
 ```
 
 ## Verify

@@ -24,7 +24,7 @@ make              # kernel module + userspace tools
 Or build each half on its own:
 
 ```sh
-make userspace    # mkfs.cetra, fsck.cetra, defrag.cetra
+make userspace    # mkfs.cetra, fsck.cetra, defrag.cetra, growfs.cetra
 make mod          # kmod/cetrafs.ko
 ```
 
@@ -41,7 +41,7 @@ Both the module and the tools build with `-Werror`. If you are bisecting on an u
 There is no `make install` target. Copy the tools onto your `PATH` and put the module where `modprobe` can find it:
 
 ```sh
-sudo install -m 0755 userspace/mkfs.cetra userspace/fsck.cetra userspace/defrag.cetra /usr/local/sbin/
+sudo install -m 0755 userspace/mkfs.cetra userspace/fsck.cetra userspace/defrag.cetra userspace/growfs.cetra /usr/local/sbin/
 sudo install -D -m 0644 kmod/cetrafs.ko /lib/modules/$(uname -r)/extra/cetrafs.ko
 sudo depmod -a
 ```

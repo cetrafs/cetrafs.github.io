@@ -46,7 +46,7 @@ enableGitInfo = true
   # The current cetrafs release. The single place to change it: templates read
   # .Site.Params.version and content pages use the {{< version >}} shortcode.
   # It is also the GitHub release tag and the Debian package version.
-  version = "0.8.2"
+  version = "0.9"
   # The latest cetrafs-proxmox release: the GitHub release tag and the version
   # of the pve-storage-cetrafs packages. The single place to change it; content
   # pages use the {{< plugin-version >}} shortcode.

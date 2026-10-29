@@ -18,6 +18,8 @@ When a guest filesystem gets corrupted, the cause could be the array, the fabric
 
 Keep independent backups until the top layer has soaked clean.
 
+This is about **your** deployment. The automated suites that gate every cetrafs change are described in [How cetrafs is tested](/docs/concepts/testing/). L2 and L3 below assume those are green: a build that fails its own automated gate isn't ready to be deployed and checked by hand.
+
 ## L0: the raw LUN
 
 Present the LUN to one host and test the block device directly, with no cetrafs.
@@ -58,9 +60,10 @@ Mount on one host only.
 - `fio --verify=crc32c --fsync=16 --runtime=6h` on a file on cetrafs.
 - `fsstress` inside a guest filesystem image stored on cetrafs.
 - Power loss: run a `diskchecker.pl`-style client against a cetrafs file, then `echo b > /proc/sysrq-trigger`, remount, `fsck.cetra -r`, verify.
+- The content oracle, `tests/kernel/churn_oracle.sh` from the source tree, with several seeds (`CHURN_SEED`) and more rounds (`CHURN_ROUNDS`). It builds its volume as a loop image in `CT_IMG_DIR`; point that at a directory on the storage under test. It is the only check here that compares every block read back with what was written, from the cache, after dropping it, and after a remount.
 - After every run: `fsck.cetra <dev>` must be clean.
 
-**Pass:** no verify errors, no loss of `fsync`ed data, fsck clean (after `-r` following a crash; residue from operations that weren't acknowledged is expected).
+**Pass:** no verify errors, no loss of `fsync`ed data, fsck clean (after `-r` following a crash; residue from operations that weren't acknowledged is expected), and the content oracle clean across seeds.
 
 ## L3: the cluster
 
@@ -98,4 +101,11 @@ Run everything above at once, as a soak lasting several weeks, with Proxmox HA f
 | Corruption only after migration or concurrent use | L1 coherency and CAW checks | Both fine: cetrafs at L3 | Hypervisor caching or no ATS, below cetrafs |
 | Two nodes writing at once (split-brain) | L1 CAW, HA fencing | CAW fine, no fencing: fix the HA configuration | `max_caw_blocks=0`: ATS not passed through |
 | Leaked space in fsck | L3 | | Check `scrub_reclaimed` is rising; otherwise report it |
+| A guest reads data it never wrote | L2, with the content oracle | Look at L3 and L4 | cetrafs. **`fsck` won't catch this**: see below |
 | Slow metadata operations | Expected | Each metadata operation costs real device round trips. Not a bug. | |
+
+## fsck clean is not the same as data correct
+
+A filesystem can be perfectly **consistent** and still return the wrong bytes. In 0.8.x, hole-punching part of a preallocated range dropped its "never written" mark, so blocks that had never been written began returning a deleted file's contents. Throughout, `fsck.cetra` reported the volume clean: one owner per block, every count matching the bitmaps, no overlap, no leak. There was nothing inconsistent to find. It was fixed in 0.9.
+
+So at every layer, `fsck` clean is necessary and never enough. Only a check that knows what the bytes were supposed to be can catch this kind of fault, such as `fio --verify` or the content oracle at L2, and at least one of them has to pass before a layer counts as clean.

@@ -11,7 +11,7 @@ A Proxmox VE node needs these packages, all published as GitHub releases:
 | Package | From | Contents |
 |---|---|---|
 | `cetrafs-dkms` | [cetrafs releases](https://github.com/cetrafs/cetrafs/releases) | The kernel module, built by DKMS for each kernel. |
-| `cetrafs-tools` | [cetrafs releases](https://github.com/cetrafs/cetrafs/releases) | `mkfs.cetra`, `fsck.cetra` and `defrag.cetra`. |
+| `cetrafs-tools` | [cetrafs releases](https://github.com/cetrafs/cetrafs/releases) | `mkfs.cetra`, `fsck.cetra`, `defrag.cetra` and `growfs.cetra`. |
 | `pve-storage-cetrafs` | [cetrafs-proxmox releases]({{< param pluginRepoURL >}}/releases) | The Proxmox VE storage plugin: adds a `cetrafs` storage type. |
 | `pve-storage-cetrafs-ui` | [cetrafs-proxmox releases]({{< param pluginRepoURL >}}/releases) | Optional: the `cetrafs` storage type in the web UI, under **Datacenter → Storage → Add → CetraFS**. Needs Proxmox VE 9. |
 
