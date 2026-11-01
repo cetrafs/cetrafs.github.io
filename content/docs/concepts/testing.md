@@ -12,30 +12,32 @@ This page is a map of that effort and of its known gaps. To run the suites yours
 
 ## The gate: `make check`
 
-`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, about **164 suites and 1,757 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
+`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, **192 suites and 1,918 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
 
 The kernel suites need about 7 GiB free in the working directory. A full run checks that first and stops at once if the space isn't there, rather than failing on `ENOSPC` 20 minutes in. `CT_MIN_FREE_MB` (default 7168) changes the threshold.
 
 ### `tests/image/`: the tools, with no kernel involved
 
-17 suites. No module is loaded and nothing is mounted: `mkfs.cetra` writes the on-disk structures, a helper corrupts exactly one of them, and `fsck.cetra` must report *that* fault and exit nonzero.
+19 suites. No module is loaded and nothing is mounted: `mkfs.cetra` writes the on-disk structures, a helper corrupts exactly one of them, and `fsck.cetra` must report *that* fault and exit nonzero.
 
-This is where the on-disk format is pinned down: superblock validation, geometry, the version window that lets a previous release's volume be grown rather than rebuilt, and the roughly 99 distinct faults `fsck.cetra` can name.
+This is where the on-disk format is pinned down: superblock validation, geometry, and the roughly 99 distinct faults `fsck.cetra` can name. One suite checks the size of the report as well: a directory extent claiming 2^31 blocks once produced 327,409 identical complaints, and must now produce one.
 
 ### `tests/kernel/`: the regression suite
 
-147 suites, one concern each, against a loaded module and a real mount. Roughly by area:
+173 suites, one concern each, against a loaded module and a real mount. Roughly by area:
 
 | Area | What it covers |
 |---|---|
-| Mount and superblock | Validation, refusal of damaged or foreign volumes, remount |
+| Mount and superblock | Validation, refusal of damaged or foreign volumes, remount, the Block Group table chain of a grown volume, and the claim an offline `fsck -r` or `growfs.cetra` holds while it works |
 | Inodes, directory entries, directories | The namespace, directory growth past inline extents, reuse across nodes |
 | Files, extents, hole punching | The extent tree at depths 0, 1 and 2, truncate, hole punch, sparse files, `FIEMAP` and `SEEK_HOLE`/`SEEK_DATA` |
+| Memory-mapped files | Allocation at page-fault time, so running out of space reaches the writing process as `SIGBUS`; page faults excluded from hole punch, truncate and `write(2)` |
+| VFS conformance | The answers programs read: `EISDIR` reading a directory, a nonzero `f_fsid`, preallocated ranges marked unwritten in `FIEMAP`, a root inode that must be a directory |
 | Allocation | Block Group and Zone Group ownership, free-space accounting |
 | Locking | The whole-file exclusive lock, `flock(2)`, the per-inode namespace lock |
 | Journal | Journaling and replay, including a dead node's journal |
 | Scrub and defrag | Background reclaim and the online defragmenter |
-| Growing a volume | `growfs.cetra`, and the version window for volumes from the previous release |
+| Growing a volume | `growfs.cetra`, including on a volume made by the previous release |
 | Extended attributes | `user.*`, `trusted.*`, `security.*` and LSM labelling |
 
 ## The content oracle
@@ -110,7 +112,9 @@ These aren't part of `make check`, because they are slow, destructive, or need h
 |---|---|
 | `make soak` (`tests/stress/`) | Mixed-workload hammering with a full `fsck` after every round, a race between the scrubber and the allocator, and a large sparse file. |
 | `tests/crash/` | Crash consistency. `dm-log-writes` records every write and `dm-flakey` cuts the device at an arbitrary point; the log is replayed to that point and checked. The filesystem must come back consistent from any cut, not just a tidy one. |
-| `tests/fuzz/` | Hostile images. Fields across the superblock and the metadata are mutated, and both `fsck.cetra` and the mount must refuse them without crashing. |
+| `tests/fuzz/` | Hostile images. Fields across the superblock and the metadata are mutated, and both `fsck.cetra` and the mount must refuse them without crashing. The starting image is a **grown** volume, so the Block Group table chain is in the corpus; targets are picked by type, so a structure with one instance gets as many turns as the inodes; and one mutation in three on a structure the mount depends on leaves the checksum wrong, to catch a reader that never verifies it. |
+| KASAN build (`make mod KASAN=1`) | The ordinary suites against a module built for a KASAN kernel. It found a recursion with half a kilobyte per frame that no per-function stack budget could see. It doesn't catch a read past a field that stays inside its 4 KiB block: only the explicit checks when a block is read do. |
+| clang build (`make mod LLVM=1`) | Every source compiled by clang 19 with `-Werror`, for its diagnostics. The module only loads into a kernel that was itself built with clang. |
 | `tests/device/` | Destructive, on real hardware, explicitly opt-in. The only tier that exercises the real SCSI COMPARE AND WRITE: a loop device has none, so everything else runs the single-node fallback. |
 
 ## `ctest`: the multi-node suite
@@ -162,7 +166,7 @@ The standard the Linux filesystem world is held to is **xfstests**: about 1,200 
 cetrafs is ahead of it in three places: the content oracle, which names the class of fault instead of reporting a bad checksum; negative controls as a rule; and `ctest`, since xfstests has no cluster tier at all. Measured against it, these are the gaps, in the order the project plans to close them:
 
 1. **No `fsx` or `fsstress`.** `fsx` runs random reads, writes, memory-mapped I/O, truncates and hole punches against an in-memory copy of the file, and compares after every operation. It is the tool most likely to have caught the preallocation bug above, in minutes. `fsstress` does the same for the namespace. The content oracle is a home-grown `fsx`, but it has no memory-mapped operations and checks against its own model rather than a reference copy. Both tools are planned, in `make soak` and in a nightly run.
-2. **Memory-mapped data is barely covered.** The one `mmap` suite tests the cross-node lock, not the data. Untested: mappings over a hole or a preallocated range, coherency with concurrent `read`/`write`, `msync` ordering, page faults racing a truncate or a hole punch, and writeback of dirty mapped pages.
+2. **Memory-mapped data is thinly covered.** Suites cover allocation at fault time, `ENOSPC` as `SIGBUS`, and page faults racing a truncate, a hole punch or a `write`. Still untested: mappings over a hole or a preallocated range, coherency with concurrent `read`/`write`, `msync` ordering, and writeback of dirty mapped pages.
 3. **No configuration matrix.** Everything runs at one block size, one geometry and one set of mount options. The most important missing configuration is the whole gate under `nofilelock`, which changes cluster semantics rather than tuning anything, and which has already produced two families of bugs.
 4. **Crash coverage is one scenario.** With a journal and deferred updates, the interesting cut points are many: mid-punch, mid-truncate, mid-defragmentation, between marking a block allocated and the extent that refers to it.
 5. **`ENOSPC` is hit by accident, not on purpose.** Running out of space in the middle of a multi-step operation, such as growing an extent tree, a defragmentation commit, journal reservation or writeback, is a classic source of corruption and is barely tested.
@@ -170,7 +174,7 @@ cetrafs is ahead of it in three places: the content oracle, which names the clas
 7. **No verified I/O at scale.** There is some `O_DIRECT` in the oracle, but no large sequential verify, no mixing of direct and buffered I/O on one file, and no queue-depth pressure. VM images are exactly that workload.
 8. **Large files and large offsets are thin.** There are suites for 16 TiB files, 8 TiB extents and depth-2 trees, but no systematic sweep of the boundaries.
 
-Most of the 147 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
+Most of the 173 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
 
 ## Related
 

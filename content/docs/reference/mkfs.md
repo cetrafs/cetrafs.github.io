@@ -39,6 +39,8 @@ Both have no effect on normal-sized LUNs, and passing `-b` or `-J` explicitly ov
 
 The superblock, the Zone Group table, the Block Group table, the global inode bitmap and inode table, an empty Node Registry, the pending-free queues, the per-node journal areas, every Block Group header and bitmap, and the root directory (inode 1). Every structure gets its checksum. Block Groups are dealt out to Zone Groups round-robin: Block Group *b* goes to Zone Group *b* mod *Z*, so each Zone Group gets `B / Z` of them and the first `B mod Z` get one extra. The volume is stamped format version `0x0009`.
 
+The superblock is written **last**, after everything else has been flushed, so an `mkfs.cetra` interrupted halfway can't leave a new superblock pointing at a journal area that still holds the previous volume's entries, which a mount would replay. Numeric options are parsed strictly: `-z 5x` is refused instead of being read as 5.
+
 ## Output
 
 A summary on stdout, beginning `cetrafs mkfs completed` (or `cetrafs mkfs (DRY-RUN)` with `-n`), listing the device size, Zone Group and Block Group counts and sizes, the location and size of each region, how Block Groups were divided among Zone Groups, and the superblock checksum.

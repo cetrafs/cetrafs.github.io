@@ -16,13 +16,16 @@ Not every release changes the format. Check the release notes. A release that ke
 
 Before you mix versions in one cluster, check that the release notes say the versions are compatible. The multi-node test suite assumes every node runs the same `cetrafs.ko` build.
 
-## From 0.8.x to 0.9
+## From 0.8.x to 0.9.x
 
-0.9 writes format `0x0009` but still mounts, checks and grows `0x0008` volumes from 0.8.x. So upgrading from 0.8.x needs **no reformat**: follow [Upgrading a release that keeps the format](#upgrading-a-release-that-keeps-the-format).
+0.9 writes format `0x0009`. **0.9 and 0.9.1** also mount, check and grow `0x0008` volumes from 0.8.x, so moving to one of them needs no reformat: follow [Upgrading a release that keeps the format](#upgrading-a-release-that-keeps-the-format). An `0x0008` volume stays readable by 0.8.x until it is **grown**: [growing](/docs/how-tos/grow-volume/) stamps it `0x0009`, and from then on 0.8.x modules and tools refuse it.
 
-An `0x0008` volume stays readable by 0.8.x until it is **grown**. [Growing](/docs/how-tos/grow-volume/) stamps it `0x0009`, and from then on 0.8.x modules and tools refuse it. Upgrade every node before you grow, and don't roll back to 0.8.x afterwards.
+**Since 0.9.2** that window is closed: only `0x0009` volumes mount. For an `0x0008` volume that was never grown, before installing 0.9.2:
 
-Support for `0x0008` is transitional and will be dropped in a later release.
+- **if its device has room** for at least one more Block Group, [grow it](/docs/how-tos/grow-volume/) with 0.9.1, which stamps it `0x0009`; then upgrade as usual;
+- **otherwise**, [reformat it](#upgrading-across-a-format-change).
+
+A volume made or grown by 0.9 or 0.9.1 is already `0x0009` and needs nothing.
 
 ## Upgrading across a format change
 

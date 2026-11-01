@@ -41,7 +41,7 @@ That is the layout `mkfs.cetra` writes. A [grow](/docs/reference/growfs/) moves 
 | Field | Meaning |
 |---|---|
 | `magic` | `0xC4553770` |
-| `version` | Format version (`0x0009`). This release also mounts, checks and grows `0x0008` volumes from 0.8.x; that window is temporary. Otherwise the version can change between beta releases and is never migrated. |
+| `version` | Format version (`0x0009`). The only one this release mounts: 0.9 and 0.9.1 also accepted `0x0008` from 0.8.x, and 0.9.2 closed that window. The version can change between beta releases and is never migrated. |
 | `sb_bytes` | Size of the superblock structure, as a sanity check |
 | `block_size` | 4096 |
 | `total_blocks` | Device size in blocks |
@@ -94,7 +94,7 @@ The original Block Group table, at `bg_table_start`, never moves, and holds `bg_
 | Field | Meaning |
 |---|---|
 | `node_uuid[16]` | Stable machine UUID |
-| `state` | `FREE` (0) or `REGISTERED` (1) |
+| `state` | `FREE` (0), `REGISTERED` (1), or `REPAIR` (2): held by an offline `fsck.cetra -r` or `growfs.cetra`, so no node mounts while it works |
 | `hb_seq` | Heartbeat counter |
 | `last_seen` | Unix seconds of the last heartbeat (backdated on a clean unmount) |
 | `label[32]` | Hostname, informational |

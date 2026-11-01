@@ -19,6 +19,8 @@ For what each tier exists to catch, and what isn't tested yet, see [How cetrafs 
 | `make soak ROUNDS=N` | Module loaded | Mixed-workload soak with a full `fsck` after each round. Fails on any anomalous round and keeps the image. Default 20 rounds; a release soak is 200 or more. |
 | `make release-matrix` | All of the above | Build, `check`, crash rig, sparse, fuzzers and soak, in sequence, each with its own log and a recorded summary. `ARGS="-r 3"` repeats it; `-R` resumes with the previously failed stages first. |
 | `make check-caw DEV=/dev/sdX` | A real CAW-capable device. **Destroys its contents.** | The compare-and-write paths a loop device can't reach. |
+| `make mod KASAN=1`, then `make check` | A kernel built with KASAN | The ordinary suites under the kernel's memory-error detector. The flag only raises the module's stack-frame budget to 2048 bytes, because KASAN enlarges every frame. |
+| `make mod LLVM=1` | clang | Compiles every source with clang, for its warnings. It stops before producing a loadable module unless the kernel itself was built with clang. |
 | `ctest` (multi-node) | Two or more hosts sharing one formatted LUN | Real cross-node behaviour. See below. |
 
 {{< callout type="note" title="Loop devices can't prove everything" >}}
@@ -26,6 +28,18 @@ A loop device has no atomic COMPARE AND WRITE, and it serves "uncached" reads fr
 {{< /callout >}}
 
 The destructive suites (`tests/device/`, `tests/crash/`, `ctest/`) always take the device as an explicit argument. They never pick one by default.
+
+### After an interrupted run
+
+A `make check` that is killed doesn't clean up: it leaves its 2–3 GiB image behind, and possibly a mount, a loop device and the loaded module. Each leftover image brings the next run closer to the 7 GiB floor, until every run aborts at once with `FATAL: only NNN MiB free`. Clean up before starting again:
+
+```sh
+pgrep -af 'run.sh|make check'                 # make sure nothing is still running
+umount <any cetrafs mount>; rmmod cetrafs
+losetup -D                                    # free stray loop devices
+rm -f /root/cetrafs-*.img /tmp/cetrafs-*.img  # wherever the images went
+df -Pm /                                      # must clear CT_MIN_FREE_MB
+```
 
 ## The multi-node suite (`ctest`)
 

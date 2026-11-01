@@ -14,6 +14,7 @@ toc: true
 | Same cetrafs build on every node, and tools matching the module | Not supported; a mismatched `fsck` can misread the format |
 | Supported kernel: `7.0.14`, `7.1.8+deb13`, Proxmox `7.0.14-*-pve` | Untested; may not build or load |
 | Little-endian host (amd64, arm64); one architecture per cluster | Untested |
+| A 4 KiB kernel page size: every amd64 kernel and nearly every arm64 one | Untested: the module converts between blocks and 16 KiB or 64 KiB arm64 pages, but has only ever run with 4 KiB pages. Before 0.9.2, the defragmenter could corrupt another file's data on such a kernel. `properties` shows `kernel_page_size`. |
 
 ## Hard limits
 
@@ -57,7 +58,8 @@ Each returns a clean error. None of them silently does the wrong thing.
 - Regular files, directories, symlinks, hardlinks.
 - `user.*`, `trusted.*` (listed only to `CAP_SYS_ADMIN`) and `security.*` extended attributes. cetrafs can serve as an overlayfs layer.
 - `O_DIRECT`, `mmap`, `fsync`, truncate in both directions, `fallocate` (allocate, punch hole).
-- `SEEK_HOLE` / `SEEK_DATA` and `FS_IOC_FIEMAP`, so `filefrag`, `cp --sparse`, `tar -S` and `qemu-img convert` see holes.
+- `SEEK_HOLE` / `SEEK_DATA` and `FS_IOC_FIEMAP`, so `filefrag`, `cp --sparse`, `tar -S` and `qemu-img convert` see holes. Since 0.9.2 `FIEMAP` also marks preallocated ranges as unwritten, so a tool reading extents doesn't copy the stale contents of those blocks.
+- Shared writable `mmap`. Since 0.9.2 blocks are allocated when the page is first written, so on a full volume the writing process gets `SIGBUS` instead of the data being lost later in writeback.
 - Live `statfs` free-space and free-inode counts.
 - qemu `cache=none`, `writeback` and `writethrough`.
 

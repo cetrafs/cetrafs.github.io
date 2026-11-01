@@ -48,6 +48,8 @@ Unrelated directories never wait for each other. A held lock left behind by a de
 
 Unlink, and a rename that replaces its target, check the target's lock **before** freeing anything. If a live node holds the target's write lock, the operation fails with `ETXTBSY`. Without that check, node B could free blocks node A is still writing into, and those blocks could then be handed to a different file.
 
+Since 0.9.2 a hole punch is held to the same rule as truncate: punching a hole in a file another live node has open fails with `ETXTBSY`, also on a `nofilelock` mount, and works again once that node has closed it. Before, a punch on one node could hand blocks back to the allocator while a peer was still writing into them.
+
 The check only applies when data would actually be freed. Removing one of several hardlinks, or renaming without replacing anything, never touches the data and is never blocked.
 
 ## `nofilelock`: live migration

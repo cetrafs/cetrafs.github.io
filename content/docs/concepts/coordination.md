@@ -27,7 +27,9 @@ Every claim is also read back afterwards, as a second check that it took. A read
 
 ### One primitive, used everywhere
 
-Using a single mechanism for every claim is a deliberate simplification. There is one kind of mutual exclusion to reason about and one failure mode (miscompare, then retry), and nothing else can drift out of step with it. Earlier versions also had a SCSI Persistent Reservation backend. It was deleted instead of being kept as a fallback, so there is no second, weaker path that might get used without anyone noticing.
+Using a single mechanism for every claim is a deliberate simplification. There is one kind of mutual exclusion to reason about and one failure mode (miscompare, then retry), and nothing else can drift out of step with it.
+
+A compare-and-write that **times out** is the exception: the array may or may not have executed it. Since 0.9.2 cetrafs doesn't simply send it again down another path, which could apply a change twice. It re-reads the record: if it holds the new contents the write landed, if it holds the old ones it is safe to retry, and anything else is refused with an error rather than guessed. Earlier versions also had a SCSI Persistent Reservation backend. It was deleted instead of being kept as a fallback, so there is no second, weaker path that might get used without anyone noticing.
 
 ### Devices without compare-and-write
 
@@ -55,6 +57,8 @@ Every 15 seconds (`hb_interval_secs`) each node:
 1. checks its own lease, and fences itself if another node has revoked it;
 2. renews its registry row (`hb_seq`, `last_seen`);
 3. picks up any Zone Group abandoned by a dead peer, drains its own pending-free queues, gives back surplus Zone Groups, and replays the journals of crashed peers that nothing else has needed yet.
+
+Since 0.9.2 the renewal in step 2 runs on its own timer, and the work in step 3 runs separately. That work waits on the device and has no time bound, so on a slow array it used to delay the renewal itself, and a live node could be judged dead.
 
 Another node counts as **stale**, meaning presumed dead, once its row hasn't been renewed for `stale_secs` (120 seconds by default, 8 missed beats). A clean unmount backdates the row so peers see the departure immediately.
 

@@ -14,7 +14,7 @@ Since 0.9, a cetrafs volume can grow into space its device already has: a LUN yo
 
 ## 1. Upgrade every node to 0.9
 
-Install the 0.9 `cetrafs-dkms` and `cetrafs-tools` on every node, and get the new module loaded: see [Upgrade](/docs/how-tos/upgrade-reformat/#upgrading-a-release-that-keeps-the-format). Volumes from 0.8.x mount unchanged under 0.9, so this needs no reformat.
+Install the 0.9 `cetrafs-dkms` and `cetrafs-tools` on every node, and get the new module loaded: see [Upgrade](/docs/how-tos/upgrade-reformat/#upgrading-a-release-that-keeps-the-format). Since 0.9.2 only format `0x0009` volumes mount. To keep a volume made by 0.8.x, grow it with 0.9.1, not 0.9.2: see [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x).
 
 Then check that every node has registered with a 0.9 module:
 

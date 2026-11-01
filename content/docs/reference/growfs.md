@@ -28,9 +28,11 @@ Grows a cetrafs volume into space the device already has: a LUN that has been en
 - another node's Node Registry row is still **heartbeating**, meaning that node has the volume mounted;
 - the Node Registry can't be read, so it can't prove that no other node has the volume mounted.
 
-Unmount the volume on every node first.
+Unmount the volume on every node first. It also refuses to start while an `fsck.cetra -r` or another grow is running on the volume (`is being repaired right now`).
 
-The volume must also be one this release accepts: format `0x0008` (0.8.x) or `0x0009`, with a valid superblock. A superblock checksum mismatch is refused with a request to run `fsck.cetra` first.
+While it works, `growfs.cetra` holds the same claim as `fsck.cetra -r`: mounts on every node are refused with `EBUSY` until it finishes, or until the stale window passes if it is killed. See [While `-r` runs](/docs/reference/fsck/#while--r-runs).
+
+The volume must also be one this release accepts: format `0x0009`, with a valid superblock. (0.9 and 0.9.1 also grew `0x0008` volumes from 0.8.x.) A superblock checksum mismatch is refused with a request to run `fsck.cetra` first.
 
 ## What it does
 

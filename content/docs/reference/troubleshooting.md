@@ -10,7 +10,7 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `Text file busy` (`ETXTBSY`) opening a file | Another live node has it open for writing (default mount), or holds it with `flock` | Expected. If the holder crashed, it clears after the stale window. |
-| `Text file busy` deleting or renaming over a file | Another live node has the target open | Close it there first |
+| `Text file busy` deleting, renaming over, truncating or hole-punching a file | Another live node has the file open | Close it there first |
 | qemu: `Could not open '…': Text file busy` during live migration | The cluster is mounted with the file lock on | [Enable live migration](/docs/how-tos/live-migration/) |
 | Every write fails with `EIO` | This node has **fenced itself**: a peer took over its resources | Check `fenced: yes` in `info`, then unmount and mount again. [Details](/docs/how-tos/recover-node-failure/#a-mount-where-every-write-fails-with-eio) |
 | `ENOSPC` with free space showing | No owned Zone Group has room and none is free to claim (`write_ready: no`), or the inodes have run out | Check `free_inodes` and `write_ready` |
@@ -26,6 +26,7 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `EBUSY` | The device has no atomic CAW and another node already has it mounted | Single-node only. [Check CAW](/docs/how-tos/check-caw/). |
+| `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. If it was killed, the claim lapses after the stale window. |
 | `EINVAL`, version or feature in `dmesg` | The volume was made by a different format version | Reformat. [Upgrade](/docs/how-tos/upgrade-reformat/) |
 | `EINVAL`, file-lock mode conflict in `dmesg` | Your `nofilelock` option disagrees with the mode the cluster already uses | Use the same options as the other nodes |
 | "CAW discovery failed … refusing the mount" | cetrafs couldn't determine whether the device supports compare-and-write | Check the storage path; the probe will show the error |
@@ -53,7 +54,7 @@ toc: true
 
 | Message | Meaning |
 |---|---|
-| `BG N free delta … would take the count below zero`, repeated every heartbeat, with `surplus ZG release pass failed` | A 0.8.x bug: a stale free-count change was applied after a recount. Fixed in 0.9. Upgrade, then run `fsck.cetra -r` to recount. No file data is affected. |
+| `BG N free delta … would take the count below zero`, repeated every heartbeat, with `surplus ZG release pass failed` | A 0.8.x bug: a stale free-count change was applied after a recount. Fixed in 0.9. Run `fsck.cetra -r` to recount, and upgrade. No file data is affected. |
 
 ## Counters worth a second look
 

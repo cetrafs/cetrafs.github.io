@@ -101,6 +101,7 @@ These counters cover the whole module, not one mount: they include every volume 
 |---|---|
 | `version` | On-disk format version |
 | `block_size` | Block size |
+| `kernel_page_size`, `blocks_per_page` | The kernel's page size and how many filesystem blocks fit in a page. Everything has been tested at 4096 and 1; quote these in a bug report. |
 | `cluster_id` | The volume's cluster identifier |
 | `features_compat`, `features_ro_compat`, `features_incompat` | Feature bitmaps; incompatible flags are also printed by name |
 | `caw: class=… logical_block_size=… max_caw_blocks=… available=…` | The device's compare-and-write capability. `class` is `scsi`, `nvme` or `none`. `available=no` means the volume is single-node only. |
@@ -116,7 +117,7 @@ live_grow_ready: yes
 
 | Field | Meaning |
 |---|---|
-| `state` | `REGISTERED` |
+| `state` | `REGISTERED`. A row held by an offline `fsck.cetra -r` or `growfs.cetra` is printed as `row=N REPAIR-IN-PROGRESS last_seen=… label=…` instead; it is why mounts are being refused. |
 | `uuid` | The node's stable machine UUID |
 | `hb_seq` | Heartbeat counter, incremented every heartbeat |
 | `last_seen` | Unix time of the last heartbeat. A clean unmount backdates it so peers see the departure at once. |
