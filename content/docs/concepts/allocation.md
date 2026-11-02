@@ -56,7 +56,7 @@ Allocation bitmap blocks follow the same rule, with a correctness constraint: a 
 
 ## Running ahead, and the post-crash leak
 
-To keep files contiguous, a writing node reserves a **run** of blocks ahead of need (`alloc_run_blocks`, 256 blocks = 1 MiB by default) and gives back what it didn't use when the file is closed. If the node crashes, that give-back never happens, and the reserved blocks stay marked as allocated but unreferenced. They have **leaked**.
+To keep files contiguous, a writing node reserves a **run** of blocks ahead of need (`alloc_run_blocks`, 256 blocks = 1 MiB by default) and gives back what it didn't use when the file is closed. Since 0.9.3, while a file keeps being written sequentially, each run doubles, up to `alloc_run_max_blocks` (4096 blocks = 16 MiB), so a streaming write keeps its full speed. If the node crashes, that give-back never happens, and the reserved blocks stay marked as allocated but unreferenced. They have **leaked**.
 
 A leak is the safe direction to fail in: it wastes space. The opposite fault, a block in use but marked free, could end up shared by two files. The **background scrubber** finds and reclaims leaked blocks (every 30 minutes by default). It checks twice, a short gap apart, so it never reclaims a block that is merely in the middle of being allocated.
 

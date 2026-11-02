@@ -27,7 +27,7 @@ When the host is back up, mount the volume again (from `fstab`, or by hand):
 sudo mount -t cetrafs <dev> /mnt/cetra
 ```
 
-It finds its own row in the Node Registry by its stable machine UUID, re-attaches, replays its own journal if anything is left in it, and rejoins.
+It finds its own row in the Node Registry by its stable machine UUID, re-attaches, replays its own journal if anything is left in it, and rejoins. Since 0.9.3 the mount first watches that row for about 35 seconds, to be sure no other machine with the same UUID is using it, so expect it to take that long. See [the Node Registry](/docs/concepts/coordination/#the-node-registry).
 
 ## A mount where every write fails with `EIO`
 

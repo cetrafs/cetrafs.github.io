@@ -17,6 +17,7 @@ Every inode record carries two lock fields: the row of the node holding the lock
 
 - When a node opens an unlocked file **for writing**, it claims the lock with compare-and-write.
 - **Any** open from another node, for reading or writing, fails with **`ETXTBSY`** while the lock is held.
+- Since 0.9.3 the rule works both ways: an open **for writing** also fails with `ETXTBSY` while another live node has the file open for reading. A file has one writer and nobody else, or readers and no writer. Both checks happen inside the same compare-and-write that takes the lock or records the reader, so two opens racing on two nodes can't both get in.
 - The lock is released when the **last** local writer on the holding node closes the file. Two processes on the same node writing the same file share the claim, and no peer can slip in between their two closes.
 - A lock held by a **stale** node doesn't block anyone. The next writer to open the file reclaims it.
 
@@ -24,7 +25,7 @@ Within the holding node, cetrafs adds nothing on top of normal VFS and page-cach
 
 ## Read presence
 
-When a node opens a file for **reading**, it sets its bit in the file's 64-bit **read-presence mask**, and clears it when its last reader closes. Unlink and rename consult the mask, so a node can't destroy a file that another live node is still reading.
+When a node opens a file for **reading**, it sets its bit in the file's 64-bit **read-presence mask**, and clears it when its last reader closes. On a default mount a write-open on another node consults the mask, and on every mount so do unlink, rename, truncate, hole punch and the defragmenter, so a node can't change the layout of a file that another live node is still reading, or destroy it. A bit left by a dead node is cleared first and blocks nothing.
 
 The mask has one bit per Node Registry row, which is why a cluster has at most 64 nodes.
 
@@ -96,13 +97,13 @@ If some nodes enforced the lock and others ignored it, the result would be incon
 
 ### Taking the lock back with `flock` under `nofilelock`
 
-Under `nofilelock` a process can still claim the same exclusive cross-node lock on one file, using the standard `flock(2)` call. A migration hook can hold the lock during normal operation and release it only for the handoff window. Exclusive locks only (`LOCK_SH` isn't supported). The lock belongs to the open file description, so closing the file releases it, and a dead holder is cleared by the normal stale reclaim.
+Under `nofilelock` a process can still claim the same exclusive cross-node lock on one file, using the standard `flock(2)` call. A migration hook can hold the lock during normal operation and release it only for the handoff window. Exclusive locks only (`LOCK_SH` isn't supported). The lock belongs to the open file description, so closing the file releases it, and a dead holder is cleared by the normal stale reclaim. Since 0.9.3 that includes a `LOCK_EX` already waiting when the holder dies: it fences the dead node, replays its journal and takes the lock. Before, it waited forever, which is what a migration hook would have done if the source host died mid-handoff.
 
 ## Handing one file's lock over on a default mount
 
 Since 0.8.2, the same two calls work on a default mount, the other way round: every file is locked, and you unlock one file for as long as a handoff needs. On a file this node has open for writing:
 
-- **`flock(LOCK_UN)` suspends this node's lock on the file**, with the file still open. cetrafs first makes the file durable, as a close would: data, extent tree, allocation bitmaps and inode record are on the device before the lock goes. Another node can then open the file, for writing too, and its write-open takes the lock.
+- **`flock(LOCK_UN)` suspends this node's lock on the file**, with the file still open. cetrafs first makes the file durable, as a close would: data, extent tree, allocation bitmaps and inode record are on the device before the lock goes. Another node can then open the file for writing, and its write-open takes the lock. Since 0.9.3 this node is recorded as a writer handing over, not as a reader, so the destination's write-open gets in while opens for reading stay refused until the handoff is done.
 - **`flock(LOCK_EX)` takes the lock back.** It never takes it from another node, even a dead one: if a peer holds it, `LOCK_EX|LOCK_NB` fails with `EWOULDBLOCK`, and a blocking `LOCK_EX` waits until the peer lets go. Once it has the lock again, cetrafs drops its cached view of the file and reads it fresh, so it sees what the other node wrote.
 
 Every other file stays locked the whole time. It is the same on-disk lock a write-open takes, so there is no format change.
@@ -122,6 +123,8 @@ The details:
 
 `/proc/fs/cetrafs/<dev>/info` counts suspensions and resumptions as `lock_suspends` and `lock_resumes`. A gap between them that keeps growing means something unlocks files and never takes them back.
 
-## A remaining limit: readers that were already open
+## What a reader sees
 
-The write lock refuses any *new* open from another node. A node that opened a file for reading **before** another node took the write lock keeps its open file, though, and its cached copy of the file's **contents** isn't refreshed on every access. It won't see the new writes until it reopens the file. This is the same "no close-to-open consistency" trade-off most network filesystems make, and it doesn't weaken any of the mechanisms above.
+Before 0.9.3 a node could open a file for reading, another node could then open it for writing, and the reader kept a stale view of the file's contents until it reopened it. The rule above closes that on a default mount: a reader never shares a file with a writer on another node.
+
+So a reader trusts its cached view of the file, checking once a second whether the file has changed since. That covers the cases the rule doesn't: a `nofilelock` mount, where another node may write, and a writer that finished and closed before this node opened the file. Even there, nothing a reader is reading through can be freed under it: truncate, hole punch, unlink, rename over the file and defragmentation all refuse while a live peer has it open.

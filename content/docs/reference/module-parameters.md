@@ -30,6 +30,8 @@ Module parameters are **not bounds-checked**, because the test suites use them t
 | `scrub_interval_secs` | 1800 | Seconds between scrub cycles |
 | `scrub_gap_secs` | 15 | Gap between the scrubber's two confirming passes. Must be longer than any allocation's commit window. |
 | `alloc_run_blocks` | 256 | Blocks reserved ahead of need for each allocation run (1 MiB). `0` disables it. |
+| `alloc_run_max_blocks` | 4096 | The largest run a file that keeps writing sequentially grows to (16 MiB). Since 0.9.3. |
+| `node_uuid` | (unset) | Load-time only. This machine's node identity, as a UUID, in place of the one derived from DMI. Set it on machines that share a DMI UUID: cloned VMs, or boards with placeholder firmware. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). Since 0.9.3. |
 | `caw_probe` | (unset) | Load-time only. A device to probe for compare-and-write capability; the result goes to `dmesg` and nothing is mounted. |
 
 ## Internal tuning

@@ -11,7 +11,7 @@ cetrafs is young. It has been heavily reviewed, fuzzed and crash-tested, but it 
 
 ## Current release
 
-The current version is **{{< version >}}**. Its on-disk format is `0x0009`. 0.9.2 no longer mounts format `0x0008`, from 0.8.x: grow such a volume with 0.9.1 first, which stamps it `0x0009`, or reformat it. See [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x). The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
+The current version is **{{< version >}}**. Its on-disk format is `0x0009`, the same as 0.9.2: a volume made or grown by 0.9.2 mounts as it is. Several 0.9.3 fixes change how nodes arbitrate with each other, so **upgrade every node** and don't mount one volume from 0.9.2 and 0.9.3 at once: see [Upgrade](/docs/how-tos/upgrade-reformat/#from-092-to-093). Since 0.9.2 cetrafs no longer mounts format `0x0008`, from 0.8.x: grow such a volume with 0.9.1 first, which stamps it `0x0009`, or reformat it. See [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x). The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
 
 ## Supported platforms
 
@@ -25,7 +25,7 @@ The current version is **{{< version >}}**. Its on-disk format is `0x0009`. 0.9.
 
 The release gate is a scripted matrix (`tests/release-matrix.sh`) plus a multi-node suite run against real hardware:
 
-- **Loop-device integration suite** (`make check`): 192 suites and 1,918 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
+- **Loop-device integration suite** (`make check`): 243 suites and 2,257 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
 - **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath. A second, on 0.7.4, used a three-node amd64 Proxmox cluster on a commodity iSCSI LUN: all 27 scenarios passed, three times in a row.
 - **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, cuts power without a flush first, and tears blocks at every sector boundary.
 - **Fuzzing** of the mount and `fsck` parsing boundaries with hostile images.

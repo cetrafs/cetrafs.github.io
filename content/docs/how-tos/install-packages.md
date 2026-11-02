@@ -43,6 +43,8 @@ modinfo cetrafs | head -3
 which mkfs.cetra fsck.cetra defrag.cetra growfs.cetra
 ```
 
+Since 0.9.3 the module's `version` ends in `+src.` and a hash of the source it was built from. Every node of a cluster should show the same hash, even when the nodes run different kernel builds.
+
 You don't need to load the module by hand or add it to `/etc/modules-load.d`. The module declares the `fs-cetrafs` alias, so the first `mount -t cetrafs` loads it, just as with an in-tree filesystem. That includes mounts from `/etc/fstab` at boot and mounts made by a cluster manager.
 
 ## Upgrade

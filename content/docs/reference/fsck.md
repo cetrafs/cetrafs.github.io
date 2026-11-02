@@ -18,16 +18,16 @@ fsck.cetra [-r] <blockdev>
 
 ## Preconditions
 
-Refuses to run if the volume is **mounted locally**, or if its Node Registry has a **live row** (some node has it mounted, or crashed less than a stale window ago).
+Refuses to run if the volume is **mounted locally**, or if its Node Registry has a **live row**: a node that is still heartbeating. To tell, it watches every row a node hasn't left cleanly for one heartbeat interval with margin (20 s by default, longer if a node advertises a slower interval), and a row whose heartbeat doesn't move counts as gone. Since 0.9.3 that verdict never depends on comparing clocks, so a node whose clock lags can't be taken for dead, and a row caught mid-update is read again instead of being skipped.
 
 ## Passes
 
 | Pass | Checks |
 |---|---|
 | 1. Structural | Format version (`0x0009`); superblock checksum and region map, including what past grows recorded; the Block Group table chain (no loop, no segment outside its place, as many descriptors as Block Groups); Zone Group and Block Group descriptors and headers; every Block Group owned by a real Zone Group or by none, with no two Block Groups overlapping; Node Registry rows |
-| 2. Cluster metadata | Per-node journal flags and slots; pending-free queue entries |
+| 2. Cluster metadata | Per-node journal flags and slots; pending-free queue entries, including, since 0.9.3, a queued free for a block a file still uses (draining it would free live data) |
 | 3. Content | Inode bitmap and data bitmaps against the extent trees (all depths), in both directions; cross-file block overlap; cached free counts against bitmaps; leaks |
-| 4. Namespace | Every directory's entries and block tails; `.` and `..`; link counts against referring entries; directory entry type against inode mode; reachability from the root |
+| 4. Namespace | Every directory's entries and block tails; a directory's size against the entries it holds (since 0.9.3); `.` and `..`; link counts against referring entries; directory entry type against inode mode; reachability from the root |
 
 ## What `-r` repairs
 
@@ -40,6 +40,7 @@ Refuses to run if the volume is **mounted locally**, or if its Node Registry has
 | Orphan inode with `nlink = 0` | Freed |
 | Orphan inode with `nlink > 0` (lost directory entry) | Linked into `/lost+found` as `#<ino>` |
 | Directory block whose tail checksum is wrong but whose entries all parse (with `.` and `..` correct in a first block) | Tail re-stamped, names kept. Before 0.9.2 the block was erased and its files went to `/lost+found` by number. |
+| Directory size disagrees with the entries it holds | Size corrected. Since 0.9.3. |
 
 If `-r` reports reclaimed blocks, run it again. Some reclamation it enables is picked up on the next pass.
 
@@ -52,10 +53,11 @@ Reported, never changed:
 | Cross-file block overlap | Nothing on disk says which file should keep the block |
 | Unreadable inode record or extent header, or an extent tree deeper than the format allows | Its blocks can't be marked as used, so clearing them as leaks could hand a live file's blocks to someone else |
 | Dangling directory entry | Removing it destroys a name |
+| Journal entries a mount hasn't replayed yet | The next mount completes those writes, which a repair made around them would contradict. Mount the volume once, unmount it, and run `-r` again. Since 0.9.3. |
 
 ## While `-r` runs
 
-A repair writes the inode table, the bitmaps and directory blocks for minutes, so nothing may mount the volume meanwhile. Since 0.9.2, `fsck.cetra -r` **claims the volume** first: it holds a Node Registry row in the `REPAIR` state, and a mount on any node is refused with `EBUSY` until the repair ends. The claim is a lease that the repair keeps renewing; if `fsck.cetra` is killed, the volume is released after the stale window. Other nodes show the row as `REPAIR-IN-PROGRESS` in [`cluster`](/docs/reference/procfs/#cluster).
+A repair writes the inode table, the bitmaps and directory blocks for minutes, so nothing may mount the volume meanwhile. Since 0.9.2, `fsck.cetra -r` **claims the volume** first: it holds a Node Registry row in the `REPAIR` state, and a mount on any node is refused with `EBUSY` until the repair ends. The claim is a lease that the repair renews every 5 seconds. A mount that finds a claim watches it for 15 seconds, and if it wasn't renewed, the repairer is gone and the mount goes ahead. Before 0.9.3 the mount judged the claim by its timestamp, so a node whose clock ran ahead could mount in the middle of a repair. Other nodes show the row as `REPAIR-IN-PROGRESS` in [`cluster`](/docs/reference/procfs/#cluster).
 
 A second `fsck.cetra -r` on a volume already being repaired stops with `is already being repaired` and exit code `3`. A check without `-r` takes no claim.
 

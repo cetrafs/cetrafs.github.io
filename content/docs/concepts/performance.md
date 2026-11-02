@@ -45,6 +45,20 @@ Since 0.9, each file remembers the last extent a lookup found, and the blocks th
 
 Compact files were already on the fast path and are unchanged. `ext_cache_hits` and `ext_cache_misses` in [`info`](/docs/reference/procfs/) show whether the cache is working.
 
+## Read-only opens
+
+A file opened only for reading holds no lock, and before 0.9.3 that made cetrafs distrust its cached copy of the file's layout: every 4 KiB it read, holes included, cost a fresh read of the inode record from the device. That is exactly how a qcow2 backing file, or a base image shared by linked clones, is read.
+
+Since 0.9.3 a reader trusts its cached layout between changes to the file, checking once a second whether one has happened. That is safe because nothing a reader is reading through can be freed while it has the file open (see [What a reader sees](/docs/concepts/locking/#what-a-reader-sees)). Buffered reads also use readahead now, so contiguous pages go out as one request instead of one per 4 KiB. Reading in 1 MiB `read()` calls, on the same FC array, a file holding 2 GiB of data or an 8 GiB sparse one:
+
+| Read-only open | Before 0.9.3 | 0.9.3 |
+|---|---|---|
+| Default mount, sparse file | 18 MB/s | **2051 MB/s** |
+| Default mount, data | 18 MB/s | **2361 MB/s** |
+| `nofilelock`, file also open on a second node | 17 MB/s | **2393 MB/s** |
+
+Readahead helps a file open for writing too: buffered reads of data on a default mount went from 1834 to 2730 MB/s.
+
 ## What that means for workloads
 
 The design trades metadata speed for coherence without a lock manager. That fits **VM images**: a datastore holds a few hundred large files, each opened once and written for months. It fits **many small files badly**: a build tree, a mail spool or a home directory server would spend its time in metadata round trips. That isn't what cetrafs is for.

@@ -10,6 +10,7 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `Text file busy` (`ETXTBSY`) opening a file | Another live node has it open for writing (default mount), or holds it with `flock` | Expected. If the holder crashed, it clears after the stale window. |
+| `Text file busy` opening a file for writing, on a default mount | Another live node has it open for reading. Since 0.9.3 a file has one writer and nobody else, or readers and no writer | Close it on the reading node first |
 | `Text file busy` deleting, renaming over, truncating or hole-punching a file | Another live node has the file open | Close it there first |
 | qemu: `Could not open '…': Text file busy` during live migration | The cluster is mounted with the file lock on | [Enable live migration](/docs/how-tos/live-migration/) |
 | Every write fails with `EIO` | This node has **fenced itself**: a peer took over its resources | Check `fenced: yes` in `info`, then unmount and mount again. [Details](/docs/how-tos/recover-node-failure/#a-mount-where-every-write-fails-with-eio) |
@@ -26,7 +27,9 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `EBUSY` | The device has no atomic CAW and another node already has it mounted | Single-node only. [Check CAW](/docs/how-tos/check-caw/). |
-| `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. If it was killed, the claim lapses after the stale window. |
+| `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. If it was killed, it stops renewing its claim, and since 0.9.3 the next mount sees that within about 15 seconds. |
+| `EBUSY`, `another machine has the same node UUID` in `dmesg` | Two machines share a DMI UUID, typically cloned VMs, and the other one has the volume mounted | Give one of them its own identity: `options cetrafs node_uuid=<uuid>`. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). |
+| Mount takes about 35 seconds, `watching it … to be sure no other machine is using it` in `dmesg` | The first mount after an unclean shutdown checks that its old registry row is really unused | Expected; see [Recover from a node failure](/docs/how-tos/recover-node-failure/) |
 | `EINVAL`, version or feature in `dmesg` | The volume was made by a different format version | Reformat. [Upgrade](/docs/how-tos/upgrade-reformat/) |
 | `EINVAL`, file-lock mode conflict in `dmesg` | Your `nofilelock` option disagrees with the mode the cluster already uses | Use the same options as the other nodes |
 | "CAW discovery failed … refusing the mount" | cetrafs couldn't determine whether the device supports compare-and-write | Check the storage path; the probe will show the error |
@@ -40,7 +43,7 @@ toc: true
 | Tool | `3` means |
 |---|---|
 | `mkfs.cetra` | Device inaccessible, or **mounted locally or by a live peer**. `-f` won't override this. |
-| `fsck.cetra` | Couldn't examine the device: inaccessible, mounted, or a live registry row (wait out the stale window after a crash) |
+| `fsck.cetra` | Couldn't examine the device: inaccessible, mounted, or a registry row that is still heartbeating |
 
 ## Messages in fsck output
 

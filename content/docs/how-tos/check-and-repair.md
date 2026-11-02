@@ -13,7 +13,7 @@ toc: true
 sudo umount /mnt/cetra          # on every node
 ```
 
-If a node crashed, its row stays live until the stale window passes (120 s by default). Wait that long before running `fsck`.
+A node that crashed doesn't block `fsck`: its row stops heartbeating. To tell, `fsck.cetra` watches every row a node hasn't left cleanly for about 20 seconds (longer if a node runs a slower heartbeat) before it starts, and a row whose heartbeat doesn't move counts as gone.
 
 ## 2. Check (read-only)
 
