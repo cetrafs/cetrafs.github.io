@@ -27,25 +27,33 @@ When the host is back up, mount the volume again (from `fstab`, or by hand):
 sudo mount -t cetrafs <dev> /mnt/cetra
 ```
 
-It finds its own row in the Node Registry by its stable machine UUID, re-attaches, replays its own journal if anything is left in it, and rejoins. Since 0.9.3 the mount first watches that row for about 35 seconds, to be sure no other machine with the same UUID is using it, so expect it to take that long. See [the Node Registry](/docs/concepts/coordination/#the-node-registry).
+It finds its own row in the Node Registry by its stable machine UUID, re-attaches, replays its own journal if anything is left in it, and rejoins. Since 0.9.3 the mount first watches that row, to be sure no other machine with the same UUID is using it. Since 0.9.4 it watches for the stale window (120 s by default), and a mount that has to wait for another node replaying its journal can take minutes more. Give fstab mounts a [longer systemd timeout](/docs/how-tos/mount-volume/#mount-at-boot-with-etcfstab). See [the Node Registry](/docs/concepts/coordination/#the-node-registry).
 
-## A mount where every write fails with `EIO`
+## A mount where everything fails with `EIO`
 
-The mount has **fenced itself**. Another node decided this one was dead, reclaimed its resources and revoked its lease, and this node noticed on its next heartbeat. Fencing is one-way: every write fails with `EIO` until the volume is unmounted and mounted again.
-
-Confirm it:
+The mount has **stopped**. Since 0.9.4 every access fails with `EIO`, reads included; before, only writes failed, and only fencing did it. `info` says why:
 
 ```sh
-grep fenced /proc/fs/cetrafs/<dev>/info         # fenced: yes
-cat /proc/fs/cetrafs/<dev>/cluster              # a peer took over
+grep -E 'fenced|stopped' /proc/fs/cetrafs/<dev>/info    # fenced: yes, stopped: <cause>
+cat /proc/fs/cetrafs/<dev>/cluster                      # who took over
 ```
 
-Recover:
+- `fenced` or `lease`: another node decided this one was dead and took over, or this node couldn't renew its heartbeat in time.
+- `error`: the device refused a metadata write, or a compare-and-write couldn't be decided. Look at the storage first: `multipath -ll`, the array, SCSI errors in `dmesg`.
+- `corruption`: damaged metadata, on a mount with `corruption=stop`.
+- `manual` or `device_gone`: someone asked for it, or the device went away.
+
+It is one-way, and the same state a crash leaves: nothing is written from the stop on, the heartbeat stops, and after the stale window the peers replay this node's journal and take over its files. To bring the node back:
 
 ```sh
-sudo umount /mnt/cetra
+sudo umount /mnt/cetra                  # writes nothing on a stopped mount
+sudo fsck.cetra <dev>                   # read-only check, for `corruption` or if in doubt
 sudo mount -t cetrafs <dev> /mnt/cetra
 ```
+
+## A file that returns "Structure needs cleaning" (`EUCLEAN`)
+
+Since 0.9.4, damaged metadata found in a file or directory makes every write to it fail with `EUCLEAN`, so nothing is freed or rewritten from a damaged extent tree. Reading the undamaged parts still works, and the rest of the mount carries on. `corruptions` in `info` is above 0, and `dmesg` names the inode. Copy out what can be read, then unmount on every node and run `fsck.cetra -r <dev>`. See [Check and repair](/docs/how-tos/check-and-repair/).
 
 A healthy node fencing itself means it went silent for longer than the stale window while it was still alive. Common causes are an all-paths-down multipath event, a host that froze, or a saturated array. Find out which, because during that window the node and its peers both believed they owned the same resources. Check [the multipath stale window](/docs/how-tos/multipath-stale-window/) and read [Fencing and split-brain](/docs/concepts/fencing/).
 

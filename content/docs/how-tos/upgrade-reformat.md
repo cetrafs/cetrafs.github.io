@@ -16,14 +16,14 @@ Not every release changes the format. Check the release notes. A release that ke
 
 Before you mix versions in one cluster, check that the release notes say the versions are compatible. The multi-node test suite assumes every node runs the same `cetrafs.ko` build.
 
-## From 0.9.2 to 0.9.3
+## From 0.9.2 to 0.9.3 and 0.9.4
 
-0.9.3 keeps format `0x0009`, so a volume made or grown by 0.9.2 mounts as it is. One new inode field takes space that was zero padding on every existing record, so nothing has to be rewritten.
+0.9.3 and 0.9.4 keep format `0x0009`, so a volume made or grown by 0.9.2 or 0.9.3 mounts as it is. 0.9.3 added one inode field in space that was zero padding on every existing record, so nothing has to be rewritten.
 
-The versions must not share a volume, though. Several 0.9.3 fixes change how nodes arbitrate with each other: who may open a file while another node reads it, and when blocks and inode numbers may be freed or reused. They protect only nodes that run them. So the rolling, node-by-node upgrade above doesn't apply this time:
+Two releases must not share a volume, though. Several fixes in each release change how nodes arbitrate with each other: who may open a file while another node reads it, and when blocks and inode numbers may be freed or reused. They protect only nodes that run them. So the rolling, node-by-node upgrade above doesn't apply this time:
 
 {{< steps >}}
-1. Install the 0.9.3 `cetrafs-dkms` and `cetrafs-tools` on every node.
+1. Install the new `cetrafs-dkms` and `cetrafs-tools` on every node.
 2. Stop the VMs on the volume and **unmount it on every node**.
 3. Reload the module (or reboot) on every node.
 4. Mount again.

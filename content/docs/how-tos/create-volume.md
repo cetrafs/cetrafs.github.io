@@ -11,6 +11,8 @@ toc: true
 
 ## 1. Preview the geometry
 
+For a cluster, use the whole LUN or its multipath device, not a partition: since 0.9.4 a partition is single-node only, because compare-and-write addresses the whole disk.
+
 The device always comes **first**, before any options:
 
 ```sh

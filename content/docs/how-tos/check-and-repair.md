@@ -13,7 +13,7 @@ toc: true
 sudo umount /mnt/cetra          # on every node
 ```
 
-A node that crashed doesn't block `fsck`: its row stops heartbeating. To tell, `fsck.cetra` watches every row a node hasn't left cleanly for about 20 seconds (longer if a node runs a slower heartbeat) before it starts, and a row whose heartbeat doesn't move counts as gone.
+A node that crashed doesn't block `fsck`: its row stops heartbeating. To tell, `fsck.cetra` watches every row a node hasn't left cleanly before it starts, and a row whose heartbeat doesn't move counts as gone. Since 0.9.4 that watch lasts up to 240 s, the longest stale window a node may be set to.
 
 ## 2. Check (read-only)
 

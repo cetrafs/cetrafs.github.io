@@ -24,11 +24,12 @@ For a Proxmox/qemu cluster that live-migrates VMs, add `nofilelock`. See [Enable
 ## Mount at boot with `/etc/fstab`
 
 ```fstab
-/dev/mapper/mpatha  /mnt/cetra  cetrafs  _netdev,nofail  0  0
+/dev/mapper/mpatha  /mnt/cetra  cetrafs  _netdev,nofail,x-systemd.mount-timeout=600  0  0
 ```
 
 - `_netdev` waits for the network, which iSCSI needs. It does no harm on Fibre Channel.
 - `nofail` lets the host finish booting if the LUN isn't there.
+- `x-systemd.mount-timeout=600` gives the mount ten minutes. A mount after a crash can legitimately wait minutes: up to the stale window (120 s by default, 240 s at most) to make sure no other machine is using its identity, and up to about 210 s more if another node is replaying its journal. systemd's default timeout is 90 s; it kills the mount mid-wait, and the mount then starts over.
 - Add `nofilelock` to the options on a live-migration cluster, and add it on **every** node.
 - Use a stable device name: a multipath alias, or a `/dev/disk/by-id/...` path. Never a bare `/dev/sdX`, which can change between boots.
 
@@ -50,6 +51,7 @@ What=/dev/mapper/mpatha
 Where=/mnt/cetra
 Type=cetrafs
 Options=nofilelock
+TimeoutSec=600
 
 [Install]
 WantedBy=multi-user.target

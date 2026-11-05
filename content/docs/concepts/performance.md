@@ -32,6 +32,21 @@ Metadata operations, on a 5 GiB iSCSI LUN with atomic CAW:
 | stat | ~21 ms |
 | *one device read / synchronous write / compare-and-write* | *~5.5 / ~38 / ~36 ms* |
 
+## Direct writes into holes
+
+qemu with `cache=none` writes a thin VM image with `O_DIRECT`, and the first write to each block of a sparse or preallocated image lands in a hole or in preallocated space. Before 0.9.4, cetrafs couldn't map such a write directly: the kernel finished it through the page cache with a synchronous flush, under the file's lock, so every one of them ran at queue depth 1 whatever the guest asked for.
+
+Since 0.9.4 the write stays direct. A hole is allocated as preallocated space, the data goes straight to the device, and the blocks are marked written only when the write completes, so nothing (a reader, a peer, a crash) can see what they held before. On an FC array, random 4 KiB writes into a sparse file are 35–40% faster. On a 1 Gbit iSCSI node, with the queue depths of a typical fio job:
+
+| `O_DIRECT` writes | Before 0.9.4 | 0.9.4 |
+|---|---|---|
+| Random 4 KiB into a hole, QD32 | 1,357–1,371 IOPS | 1,578–1,597 IOPS |
+| Sequential 1 MiB into a hole, QD16 | 72 MiB/s | 94–95 MiB/s (link-bound) |
+| Random 4 KiB into preallocated space, QD32 | 960–965 IOPS | 1,291–1,296 IOPS |
+| Random 4 KiB overwrite, for reference | | 21,019–21,226 IOPS |
+
+Random writes into holes stay far below overwrites. A file filled in random order has extent leaves that each span the whole file, so finding a hole reads most of them; that cost predates 0.9.4. Writes smaller than a block (a 512-byte guest sector) wait for each other, as on ext4; a guest with 4 KiB sectors keeps its queue depth. `dio_fallbacks` in [`info`](/docs/reference/procfs/) counts direct writes that still went through the page cache and should stay at 0; the module parameter `dio_fill_holes=0` brings the old path back.
+
 ## Aged images
 
 A buffered write asks for the location of its data one 4 KiB block at a time. Before 0.9, each of those lookups walked the file's extent tree from the top. On a compact file that costs nothing, because the inode's own slots rule out every leaf without reading one. On a file rewritten in place for months, the leaves cover wide, overlapping ranges, so most lookups read several of them: a VM image slowed down as it aged.

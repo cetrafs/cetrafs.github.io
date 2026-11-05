@@ -12,19 +12,19 @@ This page is a map of that effort and of its known gaps. To run the suites yours
 
 ## The gate: `make check`
 
-`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, **243 suites and 2,257 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
+`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, **387 suites and 3,282 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
 
 The kernel suites need about 7 GiB free in the working directory. A full run checks that first and stops at once if the space isn't there, rather than failing on `ENOSPC` 20 minutes in. `CT_MIN_FREE_MB` (default 7168) changes the threshold.
 
 ### `tests/image/`: the tools, with no kernel involved
 
-26 suites. No module is loaded and nothing is mounted: `mkfs.cetra` writes the on-disk structures, a helper corrupts exactly one of them, and `fsck.cetra` must report *that* fault and exit nonzero.
+34 suites. No module is loaded and nothing is mounted: `mkfs.cetra` writes the on-disk structures, a helper corrupts exactly one of them, and `fsck.cetra` must report *that* fault and exit nonzero.
 
 This is where the on-disk format is pinned down: superblock validation, geometry, and the roughly 99 distinct faults `fsck.cetra` can name. One suite checks the size of the report as well: a directory extent claiming 2^31 blocks once produced 327,409 identical complaints, and must now produce one.
 
 ### `tests/kernel/`: the regression suite
 
-217 suites, one concern each, against a loaded module and a real mount. Roughly by area:
+353 suites, one concern each, against a loaded module and a real mount. Roughly by area:
 
 | Area | What it covers |
 |---|---|
@@ -32,6 +32,8 @@ This is where the on-disk format is pinned down: superblock validation, geometry
 | Inodes, directory entries, directories | The namespace, directory growth past inline extents, reuse across nodes |
 | Files, extents, hole punching | The extent tree at depths 0, 1 and 2, truncate, hole punch, sparse files, `FIEMAP` and `SEEK_HOLE`/`SEEK_DATA` |
 | Addresses read off the disk | An extent whose physical block lands in the inode table is refused before anything uses it. Its checksum can't catch that, because the record is validly stamped and just says something impossible; before 0.9.3, following it let an ordinary `write(2)` overwrite inode records |
+| `O_DIRECT` | A write into a hole or preallocated space stays direct and keeps its queue depth, the zeroing of a partial block, and hole punches beside writes in flight; on a delayed device, because a loop device makes serialised I/O cost nothing |
+| Error policy | A stopped mount refuses every access and writes nothing from the stop through the unmount, byte for byte; a refused metadata write; `errors=` and `corruption=`; the lease running out; a device that fails under a live mount |
 | Memory-mapped files | Allocation at page-fault time, so running out of space reaches the writing process as `SIGBUS`; page faults excluded from hole punch, truncate and `write(2)` |
 | VFS conformance | The answers programs read: `EISDIR` reading a directory, a nonzero `f_fsid`, preallocated ranges marked unwritten in `FIEMAP`, a root inode that must be a directory |
 | Allocation | Block Group and Zone Group ownership, free-space accounting |
@@ -175,7 +177,7 @@ cetrafs is ahead of it in three places: the content oracle, which names the clas
 7. **No verified I/O at scale.** There is some `O_DIRECT` in the oracle, but no large sequential verify, no mixing of direct and buffered I/O on one file, and no queue-depth pressure. VM images are exactly that workload.
 8. **Large files and large offsets are thin.** There are suites for 16 TiB files, 8 TiB extents and depth-2 trees, but no systematic sweep of the boundaries.
 
-Most of the 217 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
+Most of the 353 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
 
 ## Related
 

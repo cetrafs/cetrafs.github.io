@@ -13,7 +13,11 @@ toc: true
 | `Text file busy` opening a file for writing, on a default mount | Another live node has it open for reading. Since 0.9.3 a file has one writer and nobody else, or readers and no writer | Close it on the reading node first |
 | `Text file busy` deleting, renaming over, truncating or hole-punching a file | Another live node has the file open | Close it there first |
 | qemu: `Could not open '…': Text file busy` during live migration | The cluster is mounted with the file lock on | [Enable live migration](/docs/how-tos/live-migration/) |
-| Every write fails with `EIO` | This node has **fenced itself**: a peer took over its resources | Check `fenced: yes` in `info`, then unmount and mount again. [Details](/docs/how-tos/recover-node-failure/#a-mount-where-every-write-fails-with-eio) |
+| Every access fails with `EIO` | The mount has **stopped**: fenced by a peer, its lease ran out, the device refused a metadata write, or someone stopped it | Check `fenced: yes` and `stopped:` in `info`, then unmount and mount again. [Details](/docs/how-tos/recover-node-failure/#a-mount-where-everything-fails-with-eio) |
+| `Structure needs cleaning` (`EUCLEAN`) writing a file | Damaged metadata was found in it. Since 0.9.4 writes to it are refused; reads of its undamaged parts still work | Copy out what can be read, unmount everywhere, run `fsck.cetra -r`. [Details](/docs/how-tos/recover-node-failure/#a-file-that-returns-structure-needs-cleaning-euclean) |
+| `EIO` from `close` | A write of the file's data failed earlier and nothing had reported it. Since 0.9.4 `close` does | Check the storage path; the data written since the last successful `fsync` may not be on the device |
+| `EIO` from `flock -u` | The release didn't reach the device. Since 0.9.4 the descriptor then keeps the lock | Retry `flock -u`. A migration hook that ignores the result sees the destination's open fail with `ETXTBSY` |
+| `ETXTBSY` writing a file after `flock -u` on a default mount | This node suspended its lock for a handoff. Since 0.9.4 its own writes are refused until `flock -x` takes the lock back (a store through `mmap` gets `SIGBUS`) | Expected: the handoff never has two writers |
 | `ENOSPC` with free space showing | No owned Zone Group has room and none is free to claim (`write_ready: no`), or the inodes have run out | Check `free_inodes` and `write_ready` |
 | `EOPNOTSUPP` from `fallocate` | A mode other than allocate or punch-hole was requested | [Limits](/docs/reference/limits/#unsupported-operations) |
 | `EOPNOTSUPP` from `flock` | Shared lock requested, or `LOCK_EX` on a default mount for a file this node doesn't have open for writing | Use `LOCK_EX`, on a descriptor opened for writing |
@@ -27,9 +31,11 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `EBUSY` | The device has no atomic CAW and another node already has it mounted | Single-node only. [Check CAW](/docs/how-tos/check-caw/). |
-| `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. If it was killed, it stops renewing its claim, and since 0.9.3 the next mount sees that within about 15 seconds. |
+| `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. If it is killed, it releases the claim on the way out; if it couldn't (`SIGKILL`, a crash), the next mount watches the claim for the stale window and goes ahead once it is no longer renewed. |
 | `EBUSY`, `another machine has the same node UUID` in `dmesg` | Two machines share a DMI UUID, typically cloned VMs, and the other one has the volume mounted | Give one of them its own identity: `options cetrafs node_uuid=<uuid>`. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). |
-| Mount takes about 35 seconds, `watching it … to be sure no other machine is using it` in `dmesg` | The first mount after an unclean shutdown checks that its old registry row is really unused | Expected; see [Recover from a node failure](/docs/how-tos/recover-node-failure/) |
+| Mount takes minutes, `watching it … to be sure no other machine is using it` in `dmesg` | The first mount after an unclean shutdown watches its old registry row for the stale window (120 s by default), and may wait for a peer replaying its journal | Expected. If systemd kills the mount after 90 s, raise its [mount timeout](/docs/how-tos/mount-volume/#mount-at-boot-with-etcfstab) |
+| `EBUSY`, `is already mounted without …` in `dmesg` | A second mount of a device this node already has mounted asks for a `nofilelock`, `errors=` or `corruption=` setting the first mount doesn't have | Use the first mount's options |
+| Refused, page size in `dmesg` | An arm64 kernel with 16 KiB or 64 KiB pages. Since 0.9.4 the page must be one 4 KiB block | Use a 4 KiB-page kernel |
 | `EINVAL`, version or feature in `dmesg` | The volume was made by a different format version | Reformat. [Upgrade](/docs/how-tos/upgrade-reformat/) |
 | `EINVAL`, file-lock mode conflict in `dmesg` | Your `nofilelock` option disagrees with the mode the cluster already uses | Use the same options as the other nodes |
 | "CAW discovery failed … refusing the mount" | cetrafs couldn't determine whether the device supports compare-and-write | Check the storage path; the probe will show the error |
@@ -52,6 +58,7 @@ toc: true
 | `N data block(s) marked in use but referenced by no inode (leaked)` | Normal after a node crash: blocks reserved ahead of need. The scrubber reclaims them; `-r` does it at once. |
 | Orphan inodes, drifted counts after an unclean shutdown | Leftovers from operations that weren't acknowledged (per-fsync consistency). `-r` repairs them. |
 | Cross-file overlap, unreadable inode, dangling entry | `-r` refuses: these need a human decision. Keep the image, and report it. |
+| `WARN` lines about a deleted record's stale extents, a record never written, or an empty file no entry names | Since 0.9.4 these are leftovers of an interrupted operation, not damage, and don't change the exit code. Each is a leak; the scrubber or `-r` takes it back. |
 
 ## Messages in the kernel log
 

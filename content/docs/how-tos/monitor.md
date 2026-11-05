@@ -21,7 +21,9 @@ grep -E '^(write_ready|fenced|file_lock|free_data_blocks|free_inodes|cas_miscomp
 |---|---|---|---|
 | Free space | `info`: `free_data_blocks`, `free_inodes` (or `df`) | Steady consumption | Approaching zero. Inodes are fixed at mkfs time. |
 | Node liveness | `cluster`: `stale=` per row | All `no` | A row shows `stale=yes` (that peer has crashed or stalled) or keeps showing it for a long time. |
-| Fenced | `info`: `fenced` | `no` | `yes`: this node's lease was revoked and every write fails with `EIO`. Remount. See [Recover from a node failure](/docs/how-tos/recover-node-failure/). |
+| Stopped | `info`: `fenced`, `stopped` | `no`, `none` | `fenced: yes`: the mount has stopped and every access fails with `EIO`; `stopped` says why. See [Recover from a node failure](/docs/how-tos/recover-node-failure/#a-mount-where-everything-fails-with-eio). |
+| Damaged metadata | `info`: `corruptions` | `0` | Above `0`: writes to the damaged file fail with `EUCLEAN`, and the volume needs `fsck.cetra`. |
+| Journal | `info`: `journal_slots_stuck` | `0` | Nonzero: the device refused writes. |
 | Write readiness | `info`: `write_ready` | `yes` on nodes that write | Persistently `no`: every Zone Group is owned by another node. Too few Zone Groups for the number of writers. |
 | Contention | `info`: `cas_miscompares` | Rising slowly while several nodes work | Stuck at `0` while two nodes are both busy: they may not really share the device (check the storage path). |
 | Replay guard | `info`: `journal_replay_refused` | `0` in steady state | Rises with no recent crash. Each count is a cross-node overwrite that replay *refused* to apply; `dmesg` names the block. A burst right after a failover under `nofilelock` is expected. |

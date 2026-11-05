@@ -25,7 +25,9 @@ Reading the read-only files is safe on a live mount. `info` stays readable even 
 | `this_node_id` | This node's row index in the Node Registry |
 | `write_ready` | `yes` if this node owns at least one Zone Group and can allocate. `no` is normal while every Zone Group is owned by live peers. |
 | `file_lock` | `on` or `off`: the cluster-wide file-lock mode in effect (`off` = `nofilelock`) |
-| `fenced` | `yes` if this node has fenced itself; every write fails with `EIO` until remount |
+| `fenced` | `yes` if this mount has stopped, for any cause; every access fails with `EIO` until remount. Before 0.9.4 only fencing did this, and only writes failed. |
+| `stopped` | Why it stopped: `none`, `fenced`, `lease`, `error`, `corruption`, `manual` or `device_gone`. See [What a stopped mount does](/docs/reference/mount-options/#what-a-stopped-mount-does). Since 0.9.4. |
+| `corruptions` | Damaged metadata this mount has found. Above `0`, the volume needs `fsck.cetra`. Since 0.9.4. |
 | `max_file_size_bytes` | The maximum file size the kernel enforces on this volume: the smaller of the volume capacity and 16 TiB |
 
 ### Geometry and space
@@ -64,6 +66,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | Field | Meaning |
 |---|---|
 | `journal_writes` | Journaled block writes |
+| `journal_slots_stuck` | Journal slots held by entries kept for replay after a failed write. Nonzero means the device refused writes; once every slot is held, journaled writes fail until a remount. Since 0.9.4. |
 | `journal_replays` | Journal areas this node replayed |
 | `journal_replay_declines` | Contested replay claims this node gave up to a peer |
 | `journal_replay_applied` | Entries replayed: interrupted writes completed |
@@ -87,6 +90,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | `bg_pick_cursor`, `bg_pick_scan` | Allocation-cursor hits against full scans. `scan` rising in step with `cursor` means each block allocation is scanning again. |
 | `bg_desc_kept`, `bg_desc_refreshed` | Descriptor sweeps that kept this node's cached Block Group descriptors, against those that forced them back to the device. `kept` should rise on a node that owns Zone Groups. |
 | `bg_geom_reads` | Block Group geometry reads |
+| `dio_fallbacks`, `dio_converts` | `O_DIRECT` writes that went through the page cache instead, and direct-write completions that converted preallocated blocks. `dio_fallbacks` should stay at 0. Since 0.9.4. |
 | `map_calls`, `map_blocks` | Block mapping calls against the blocks they covered. `blocks` much larger than `calls` means mappings come back as contiguous runs. |
 | `giveback_blocks` | Preallocated blocks released because an extent split had no room. A last resort that should stay at or near zero. |
 | `tree_blocks` | External extent-tree blocks (leaf or interior) written. Nonzero means some file outgrew its four inline extent slots. |
@@ -101,7 +105,7 @@ These counters cover the whole module, not one mount: they include every volume 
 |---|---|
 | `version` | On-disk format version |
 | `block_size` | Block size |
-| `kernel_page_size`, `blocks_per_page` | The kernel's page size and how many filesystem blocks fit in a page. Everything has been tested at 4096 and 1; quote these in a bug report. |
+| `kernel_page_size`, `blocks_per_page` | The kernel's page size and how many filesystem blocks fit in a page. Since 0.9.4 a mount needs 4096 and 1. |
 | `cluster_id` | The volume's cluster identifier |
 | `features_compat`, `features_ro_compat`, `features_incompat` | Feature bitmaps; incompatible flags are also printed by name |
 | `caw: class=… logical_block_size=… max_caw_blocks=… available=…` | The device's compare-and-write capability. `class` is `scsi`, `nvme` or `none`. `available=no` means the volume is single-node only. |
@@ -134,6 +138,7 @@ Write one `key=value` (or `key value`) per write. Reading the file prints the cu
 | Key | Values | Default | Effect |
 |---|---|---|---|
 | `defrag` | `on`, `off` | `on` | Allow defragmentation at all on this mount, including `defrag.cetra` |
+| `shutdown` | `now` | | Stops the mount at once, as a crash would. One way: unmount and mount to come back. See [Stopping a mount by hand](/docs/reference/mount-options/#stopping-a-mount-by-hand). Since 0.9.4. |
 | `auto_defrag` | `on`, `off` | module `auto_defrag` | The background defragmenter |
 | `hb_interval_secs` | 5–30 | 15 | Seconds between this node's heartbeats |
 | `stale_secs` | 15–240, and ≥ 3 × `hb_interval_secs` | 120 | How long a peer may be silent before this node treats it as dead |

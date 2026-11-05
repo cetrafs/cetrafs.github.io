@@ -11,21 +11,21 @@ cetrafs is young. It has been heavily reviewed, fuzzed and crash-tested, but it 
 
 ## Current release
 
-The current version is **{{< version >}}**. Its on-disk format is `0x0009`, the same as 0.9.2: a volume made or grown by 0.9.2 mounts as it is. Several 0.9.3 fixes change how nodes arbitrate with each other, so **upgrade every node** and don't mount one volume from 0.9.2 and 0.9.3 at once: see [Upgrade](/docs/how-tos/upgrade-reformat/#from-092-to-093). Since 0.9.2 cetrafs no longer mounts format `0x0008`, from 0.8.x: grow such a volume with 0.9.1 first, which stamps it `0x0009`, or reformat it. See [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x). The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
+The current version is **{{< version >}}**. Its on-disk format is `0x0009`, the same as 0.9.2 and 0.9.3: a volume they made or grew mounts as it is. Several fixes in 0.9.3 and 0.9.4 change how nodes arbitrate with each other, so **upgrade every node** and don't mount one volume from two releases at once: see [Upgrade](/docs/how-tos/upgrade-reformat/#from-092-to-093-and-094). Since 0.9.2 cetrafs no longer mounts format `0x0008`, from 0.8.x: grow such a volume with 0.9.1 first, which stamps it `0x0009`, or reformat it. See [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x). The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
 
 ## Supported platforms
 
 | | Supported | Notes |
 |---|---|---|
 | Kernels | `7.0.14`, `7.1.8+deb13` (Debian); Proxmox VE `7.0.14-*-pve` | The module also builds against kernels up to 7.2. Older kernels are not supported. The code is new, so other kernels are unverified: they may fail to build or load. |
-| Architectures | arm64, amd64 | The on-disk format is little-endian but written to be portable across byte order. Only little-endian hosts have been tested. Keep a cluster on one architecture. Only 4 KiB kernel pages have been tested; arm64 kernels built with 16 KiB or 64 KiB pages are untested. |
+| Architectures | arm64, amd64 | The on-disk format is little-endian but written to be portable across byte order. Only little-endian hosts have been tested. Keep a cluster on one architecture. The kernel must use 4 KiB pages: since 0.9.4 an arm64 kernel built with 16 KiB or 64 KiB pages builds the module but refuses the mount. |
 | Storage | Any block device for a single node; for a cluster, a LUN with SCSI COMPARE AND WRITE, with 512-byte or 4 KiB logical blocks (4Kn since 0.9.1) | NVMe's fused compare-and-write is not wired up, so an NVMe device is single-node only. |
 
 ## What has been verified
 
 The release gate is a scripted matrix (`tests/release-matrix.sh`) plus a multi-node suite run against real hardware:
 
-- **Loop-device integration suite** (`make check`): 243 suites and 2,257 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
+- **Loop-device integration suite** (`make check`): 387 suites and 3,282 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
 - **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath. A second, on 0.7.4, used a three-node amd64 Proxmox cluster on a commodity iSCSI LUN: all 27 scenarios passed, three times in a row.
 - **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, cuts power without a flush first, and tears blocks at every sector boundary.
 - **Fuzzing** of the mount and `fsck` parsing boundaries with hostile images.

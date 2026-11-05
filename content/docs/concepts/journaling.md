@@ -70,4 +70,4 @@ The journal works **block by block**, not as a transaction. An operation such as
 
 ## Flushes on write-back storage
 
-`fsync` and journal commits send a cache-flush to the block device, so a LUN with a volatile write-back cache is crash-safe. On a device with a battery-backed or non-volatile cache, those flushes cost nothing.
+`fsync` and journal commits send a cache-flush to the block device, and since 0.9.4 so do `sync`, `syncfs` and unmount, so a LUN with a volatile write-back cache is crash-safe. Since 0.9.4 every metadata update is also ordered by a cache flush against the data it names and the free that follows it, not just by write completion. Before, a buffered write's extent could reach the device before its data, and a crash in between left the file showing what the block held before, possibly another file's deleted data. Buffered writes now leave their blocks unwritten until `fsync`, close or `sync` has the data on the device. On a device with a battery-backed or non-volatile cache, those flushes cost nothing.

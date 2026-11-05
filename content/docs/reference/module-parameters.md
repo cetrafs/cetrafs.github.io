@@ -26,11 +26,13 @@ Module parameters are **not bounds-checked**, because the test suites use them t
 | `auto_defrag` | 1 | Background defragmentation, the default for every mount (`controls` overrides it per mount) |
 | `auto_defrag_min_pct` | 200 | Fragmentation threshold: a file's extent count as a percentage of the minimum for its size |
 | `auto_defrag_min_extents` | 4 | Files with fewer extents than this are never auto-defragmented |
+| `auto_defrag_quiet_secs` | 10 | Seconds the background defragmenter leaves alone a file it has just declined, however many extents it gains meanwhile. Since 0.9.4. |
 | `scrub` | on | Background reclaim of leaked data blocks (marked allocated, referenced by nothing) |
 | `scrub_interval_secs` | 1800 | Seconds between scrub cycles |
 | `scrub_gap_secs` | 15 | Gap between the scrubber's two confirming passes. Must be longer than any allocation's commit window. |
 | `alloc_run_blocks` | 256 | Blocks reserved ahead of need for each allocation run (1 MiB). `0` disables it. |
 | `alloc_run_max_blocks` | 4096 | The largest run a file that keeps writing sequentially grows to (16 MiB). Since 0.9.3. |
+| `dio_fill_holes` | 1 | An `O_DIRECT` write into a hole or preallocated space stays direct. `0` brings back the pre-0.9.4 path, a buffered write plus a synchronous flush. See [Performance](/docs/concepts/performance/#direct-writes-into-holes). Since 0.9.4. |
 | `node_uuid` | (unset) | Load-time only. This machine's node identity, as a UUID, in place of the one derived from DMI. Set it on machines that share a DMI UUID: cloned VMs, or boards with placeholder firmware. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). Since 0.9.3. |
 | `caw_probe` | (unset) | Load-time only. A device to probe for compare-and-write capability; the result goes to `dmesg` and nothing is mounted. |
 
@@ -46,4 +48,4 @@ Leave these at their defaults unless a developer asks you to change them.
 
 ## Test-only parameters
 
-The module also has fault-injection and test parameters, including `cas_selftest`, `cas_stress`, `journal_skip_consume`, `journal_ignore_guard`, `journal_ignore_torn`, `idx_range_ignore`, `pf_force_foreign`, `pf_force_queue_full`, `mount_fail_at`, `fence_skip_precheck`, and parameters whose names start with `force_` or `nocaw_`. **Never set these on a production system.** Some of them disable the safety checks described in this documentation.
+The module also has fault-injection and test parameters, including `cas_selftest`, `cas_stress`, `journal_skip_consume`, `journal_ignore_guard`, `journal_ignore_torn`, `idx_range_ignore`, `pf_force_foreign`, `pf_force_queue_full`, `mount_fail_at`, `fence_skip_precheck`, and parameters whose names start with `force_` or `nocaw_`. **Never set these on a production system.** Some of them disable the safety checks described in this documentation. Since 0.9.4, setting one is logged and taints the kernel.

@@ -52,13 +52,13 @@ exec 9>>/mnt/cetra/images/vm-100-disk-0.raw     # >> opens for writing without t
 flock -x 9      # hold the lock during normal operation
 
 # before a live migration, open the handoff window:
-flock -u 9      # the other node may now open the image
+flock -u 9 || exit 1   # the other node may now open the image; on failure the lock is still held
 
 # once the migration completes:
 flock -x 9
 ```
 
-While a node holds this lock, no other node can open the file at all, for reading or writing. The lock belongs to the open file description, so `flock -u`, or closing the descriptor and all its duplicates, releases it. If the holder crashes, the normal stale-node reclaim clears the lock.
+While a node holds this lock, no other node can open the file at all, for reading or writing. The lock belongs to the open file description, so `flock -u`, or closing the descriptor and all its duplicates, releases it. Since 0.9.4 `flock -u` fails with `EIO` if the release didn't reach the device, and the lock is then still held: don't start the migration until it succeeds. If the holder crashes, the normal stale-node reclaim clears the lock.
 
 Notes:
 

@@ -21,7 +21,9 @@ On every heartbeat, each node checks its own row **before** renewing it. It **fe
 - its row is no longer `REGISTERED`, or
 - its row now carries a different UUID.
 
-A fenced mount is a **one-way latch**: every write fails with `EIO` until the volume is unmounted and mounted again. `/proc/fs/cetrafs/<dev>/info` shows `fenced: yes`. The check comes before the renewal on purpose: renewing first would re-assert a liveness the node is no longer entitled to.
+A fenced mount is a **one-way latch**: since 0.9.4 every access fails with `EIO`, reads included, until the volume is unmounted and mounted again, and the mount throws away its dirty metadata instead of writing it back. `/proc/fs/cetrafs/<dev>/info` shows `fenced: yes`. It is one cause of the general [stopped state](/docs/reference/mount-options/#what-a-stopped-mount-does). The check comes before the renewal on purpose: renewing first would re-assert a liveness the node is no longer entitled to.
+
+A node can also learn too late. If its heartbeat is stuck behind a hung device, it never gets to check its row, and its other threads write the moment I/O returns. So since 0.9.4, on a device with compare-and-write, a node **stops by itself** once its last successful renewal is three intervals old. That is one interval before any peer may call it stale, so it stops writing before anyone takes over its resources. A self-fenced node also no longer fences its peers or replays their journals, and a node takes nothing from a stale peer whose lease it hasn't revoked first.
 
 This is the storage-layer equivalent of a VMFS host stopping its I/O when it loses its heartbeat.
 
@@ -29,7 +31,7 @@ This is the storage-layer equivalent of a VMFS host stopping its I/O when it los
 
 Two gaps remain. They are stated here so nobody has to rediscover them:
 
-- **Writes already in flight.** Anything the stalled node issued before its next heartbeat check can still reach the disk after another node has taken over. That includes dirty buffers already in the page cache, because the block layer flushes them underneath the filesystem's fence. Bitmap blocks are the main concern: a late write of a stale bitmap block can undo bits the new owner has since set.
+- **Writes already in flight.** I/O already queued on the device still lands, whenever it lands. Since 0.9.4 a fenced node discards its dirty metadata right after the stop, on every heartbeat tick and just before unmount, so the window is much narrower than it was: what is left is a metadata buffer dirtied by an operation already past every check, which the block layer can write back before the next sweep. Bitmap blocks are the main concern: a late write of a stale bitmap block can undo bits the new owner has since set.
 - **An operation that loses its namespace lock.** If a node's namespace lock is taken from it during an operation, the node notices when it releases the lock. It discards its staged record update instead of overwriting the new holder's repair. The system call had already returned success, though, so that operation's record changes (a link count, a directory sequence number) are lost. The new holder's journal replay restores what it covers, and fsck reconciles the rest.
 
 ## Who must close the rest: the cluster manager

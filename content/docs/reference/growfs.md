@@ -30,7 +30,7 @@ Grows a cetrafs volume into space the device already has: a LUN that has been en
 
 Unmount the volume on every node first. It also refuses to start while an `fsck.cetra -r` or another grow is running on the volume (`is being repaired right now`).
 
-While it works, `growfs.cetra` holds the same claim as `fsck.cetra -r`: mounts on every node are refused with `EBUSY` until it finishes. If it is killed, it stops renewing the claim, and the next mount sees that within 15 seconds. See [While `-r` runs](/docs/reference/fsck/#while--r-runs).
+While it works, `growfs.cetra` holds the same claim as `fsck.cetra -r`: mounts on every node are refused with `EBUSY` until it finishes. If it is killed, it releases the claim on the way out; a claim left by `SIGKILL` or a crash is reaped by the next mount, after the stale window. Since 0.9.4 `growfs.cetra` also stops if a node starts heartbeating under its claim, and refuses to restamp a damaged record. See [While `-r` runs](/docs/reference/fsck/#while--r-runs).
 
 The volume must also be one this release accepts: format `0x0009`, with a valid superblock. (0.9 and 0.9.1 also grew `0x0008` volumes from 0.8.x.) A superblock checksum mismatch is refused with a request to run `fsck.cetra` first.
 
