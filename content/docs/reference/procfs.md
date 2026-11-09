@@ -79,6 +79,7 @@ These counters cover the whole module, not one mount: they include every volume 
 | Field | Meaning |
 |---|---|
 | `scrub_cycles` | Scrub cycles completed |
+| `scrub_inflight_skips` | Cycles that freed nothing because a node had frees in flight, from a truncate, a hole punch, a defragmentation step or an xattr removal. Since 0.9.5. |
 | `scrub_reclaimed` | Leaked data blocks reclaimed |
 | `scrub_orphan_inodes_reclaimed` | Orphaned inodes reclaimed |
 | `scrub_last_run_unix`, `scrub_last_run_ms` | When the last cycle started, and how long it took |
@@ -98,6 +99,15 @@ These counters cover the whole module, not one mount: they include every volume 
 | `ext_cache_hits`, `ext_cache_misses` | Lookups answered by the extent each file remembers from its last lookup, against those that walked the tree. On a sequential write `hits` should far outnumber `misses`; if it doesn't move, the cache isn't working and a fragmented image is paying for a tree walk on every block. See [Aged images](/docs/concepts/performance/#aged-images). |
 | `lock_suspends`, `lock_resumes` | Files whose lock this node suspended with `flock(LOCK_UN)` on a default mount, and took back with `flock(LOCK_EX)`. A suspension also ends when the file is closed, so the two needn't match; a gap that keeps growing while files stay open means something unlocks files and never takes them back. See [handing one file's lock over](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount). |
 | `file_cache_drops`, `file_cache_reconciles` | Times this node dropped a file's cached extent tree and pages because a peer had republished the file, and the reconciles that followed. Drops should be about 0 on a node writing its own files, and every drop should be followed by a reconcile; `drops` running ahead of `reconciles` means files are stuck on the slow, uncached path. |
+| `file_cache_cold_parked` | Files waiting for a heartbeat to retry a cold-tree reconcile that couldn't read the record. Since 0.9.5. |
+| `verdict_fills` | Times this node asked the device whether another node has a file open, rather than using its cached answer. Since 0.9.5. |
+| `ext_cache_stale_refused` | Extent-cache stores refused because the cache was dropped during the walk. Since 0.9.5. |
+| `label_invalidations` | Security labels invalidated because a refresh saw a file's ctime move. Since 0.9.5. |
+| `late_claims_cleared` | Claims of this node that nothing here uses, cleared by the sweep `own_claim_resweep_secs` after an unclean re-attach. Since 0.9.5. |
+| `deferred_orphaned`, `deferred_adopted` | Held-back extent-tree blocks left behind by an evicted inode, and those a later edit moved back to their inode's list. Since 0.9.5. |
+| `defrag_max_step_blocks` | The largest defragmentation step taken since the module was loaded. Since 0.9.5. |
+| `layout_gen` | The volume's layout generation, raised by every grow. Since 0.9.5. |
+| `layout_refreshes`, `layout_refresh_refused` | Times this node adopted a new layout after a grow, and times it kept its layout because the one on the device couldn't be accepted. Since 0.9.5. |
 
 ## `properties`
 
@@ -121,15 +131,15 @@ live_grow_ready: yes
 
 | Field | Meaning |
 |---|---|
-| `state` | `REGISTERED`. A row held by an offline `fsck.cetra -r` or `growfs.cetra` is printed as `row=N REPAIR-IN-PROGRESS last_seen=… label=…` instead; it is why mounts are being refused. |
+| `state` | `REGISTERED`. A row held by `growfs.cetra` or an offline `fsck.cetra -r` is printed as `row=N REPAIR-IN-PROGRESS last_seen=… label=…` instead; it is why mounts are being refused. |
 | `uuid` | The node's stable machine UUID |
 | `hb_seq` | Heartbeat counter, incremented every heartbeat |
 | `last_seen` | Unix time of the last heartbeat. A clean unmount backdates it so peers see the departure at once. |
 | `label` | Hostname, informational only |
-| `caps` | Capabilities the node's module advertised when it registered. `0x1` means it understands a grown volume (0.9 or later); `0x0` is a module from before 0.9. |
+| `caps` | Capabilities the node's module advertised when it registered. `0x1` is the live-grow capability, from 0.9 or later, though a live grow also needs every node on 0.9.5; `0x0` is a module from before 0.9. |
 | `stale` | Whether **this** node considers that peer dead |
 
-After the node lines, `live_grow_ready: yes|no` says whether every registered node advertises `0x1`. `no` means at least one registered node runs a module older than 0.9, which would refuse the volume once it has been [grown](/docs/how-tos/grow-volume/).
+After the node lines, `live_grow_ready: yes|no` says whether every registered node advertises `0x1`. `no` means at least one registered node runs a module older than 0.9, and a live grow is refused. `yes` doesn't tell 0.9.5 from earlier releases: see [Grow a volume](/docs/how-tos/grow-volume/#1-upgrade-every-node).
 
 ## `controls` (writable)
 
@@ -140,6 +150,7 @@ Write one `key=value` (or `key value`) per write. Reading the file prints the cu
 | `defrag` | `on`, `off` | `on` | Allow defragmentation at all on this mount, including `defrag.cetra` |
 | `shutdown` | `now` | | Stops the mount at once, as a crash would. One way: unmount and mount to come back. See [Stopping a mount by hand](/docs/reference/mount-options/#stopping-a-mount-by-hand). Since 0.9.4. |
 | `auto_defrag` | `on`, `off` | module `auto_defrag` | The background defragmenter |
+| `defrag_available` | read-only: `yes`, or `no` on a `nofilelock` mount | | Whether defragmentation can run at all, whatever `defrag` says. Since 0.9.5. |
 | `hb_interval_secs` | 5–30 | 15 | Seconds between this node's heartbeats |
 | `stale_secs` | 15–240, and ≥ 3 × `hb_interval_secs` | 120 | How long a peer may be silent before this node treats it as dead |
 

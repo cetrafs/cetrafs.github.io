@@ -14,15 +14,15 @@ options cetrafs stale_secs=150
 Parameters marked writable can also be changed at runtime under `/sys/module/cetrafs/parameters/`. A change there affects **new** mounts; for a mount that already exists, use its [`controls`](/docs/reference/procfs/#controls-writable) file.
 
 {{< callout type="warning" >}}
-Module parameters are **not bounds-checked**, because the test suites use them to compress timing. The `controls` file *is* bounds-checked; use it to experiment on a live cluster.
+Most module parameters are **not bounds-checked**, because the test suites use them to compress timing. Since 0.9.5 `stale_secs` and `hb_interval_secs` are clamped, but to a wider range than is safe in production. Keep them within the limits of the `controls` file, which *is* bounds-checked; use it to experiment on a live cluster.
 {{< /callout >}}
 
 ## Operator parameters
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `stale_secs` | 120 | Seconds a peer may be silent before it is treated as dead. The default for every mount. |
-| `hb_interval_secs` | 15 | Seconds between heartbeats. The default for every mount. |
+| `stale_secs` | 120 | Seconds a peer may be silent before it is treated as dead. The default for every mount. Since 0.9.5 a mount clamps it to 3–86400 s and to at least 3 × `hb_interval_secs`; keep production values within 15–240 s. |
+| `hb_interval_secs` | 15 | Seconds between heartbeats. The default for every mount. Since 0.9.5 a mount clamps it to 1–3600 s; keep production values within 5–30 s. |
 | `auto_defrag` | 1 | Background defragmentation, the default for every mount (`controls` overrides it per mount) |
 | `auto_defrag_min_pct` | 200 | Fragmentation threshold: a file's extent count as a percentage of the minimum for its size |
 | `auto_defrag_min_extents` | 4 | Files with fewer extents than this are never auto-defragmented |
@@ -45,6 +45,7 @@ Leave these at their defaults unless a developer asks you to change them.
 | `bg_sweep_min_secs` | 30 | Minimum seconds between refreshes of other nodes' Block Group descriptors when `info` or `statfs` is read |
 | `pf_drain_min_ms` | 500 | Minimum milliseconds between on-demand pending-free drains |
 | `pf_full_backoff_ms` | 1000 | Milliseconds to skip scanning a pending-free queue already found full. `0` always scans. |
+| `own_claim_resweep_secs` | 600 | Seconds after an unclean re-attach before this node sweeps its own claims again, clearing any on files nothing here uses. `0` turns it off. Since 0.9.5. |
 
 ## Test-only parameters
 

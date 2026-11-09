@@ -45,7 +45,7 @@ It takes effect the next time the module loads. To change it on a live mount wit
 echo stale_secs=150 | sudo tee /proc/fs/cetrafs/<dev>/controls
 ```
 
-The `controls` file enforces bounds: 15–240 s, and at least 3 × `hb_interval_secs`. The module parameter isn't bounds-checked (the test suites use that to compress timing), so check the value yourself.
+The `controls` file enforces bounds: 15–240 s, and at least 3 × `hb_interval_secs`. Its value lasts until that mount is unmounted; the next mount takes the module parameter again. The module parameter accepts a wider range (since 0.9.5 a mount clamps it to 3–86400 s and to at least three heartbeats), so keep it within those bounds yourself.
 
 {{< callout type="tip" >}}
 You can shorten the other side instead, by lowering `no_path_retry` so multipath fails I/O sooner. Either way, the inequality is what matters.

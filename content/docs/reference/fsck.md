@@ -41,8 +41,11 @@ Refuses to run if the volume is **mounted locally**, or if its Node Registry has
 | Orphan inode with `nlink > 0` (lost directory entry) | Linked into `/lost+found` as `#<ino>` |
 | Directory block whose tail checksum is wrong but whose entries all parse (with `.` and `..` correct in a first block) | Tail re-stamped, names kept. Before 0.9.2 the block was erased and its files went to `/lost+found` by number. |
 | Directory size disagrees with the entries it holds | Size corrected. Since 0.9.3. |
+| A regular file's extent leaf whose tail checksum is wrong | Salvaged since 0.9.5: an entry is kept if its blocks are in a data region, set in the bitmap, named by nothing else, inside the index range, not overlapping another entry and clear of the damaged sector. The rest become holes. A leaf it can't salvage is reported. |
 
 If `-r` reports reclaimed blocks, run it again. Some reclamation it enables is picked up on the next pass.
+
+A live grow that stopped partway can leave two marks that aren't damage: a note about a table segment the superblock doesn't count yet, which the next grow replaces, and a `pool_free_blocks` that is too high, which `-r` recounts. See [Grow a volume](/docs/how-tos/grow-volume/#if-something-goes-wrong).
 
 ## What `-r` refuses
 

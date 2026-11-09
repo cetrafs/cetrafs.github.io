@@ -45,6 +45,6 @@ Module parameters set the starting value for every new mount:
 options cetrafs stale_secs=150 auto_defrag=1
 ```
 
-Only these are meant for production: `stale_secs`, `hb_interval_secs`, `auto_defrag`, `auto_defrag_min_pct`, `auto_defrag_min_extents`, `scrub`, `scrub_interval_secs`. The others are test knobs. Module parameters **aren't bounds-checked**, because the test suites use them to compress timing. When experimenting on a production cluster, use `controls`, which is.
+Only these are meant for production: `stale_secs`, `hb_interval_secs`, `auto_defrag`, `auto_defrag_min_pct`, `auto_defrag_min_extents`, `scrub`, `scrub_interval_secs`. The others are test knobs. Most module parameters **aren't bounds-checked**, and since 0.9.5 the two timing parameters are clamped only to a wider range than `controls` allows, so keep them within the limits above. When experimenting on a production cluster, use `controls`, which enforces them. A value set there lasts until that mount is unmounted.
 
 See the [module parameters reference](/docs/reference/module-parameters/) for the full list.

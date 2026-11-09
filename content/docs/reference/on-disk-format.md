@@ -87,21 +87,22 @@ where `dbm = ceil((length_blocks − 1) / 32769)`. A 1 GiB Block Group (262,144 
 
 ### Block Group table chain
 
-The original Block Group table, at `bg_table_start`, never moves, and holds `bg_table_first_count` descriptors. Each grow appends a **segment**: a header block followed by one descriptor block per added Block Group. The header (`magic` `0xC4553B65`, `count`, `first_bg_id`, `next`, `checksum`) fits in one sector, so linking a new segment is one compare-and-write on the previous segment's `next` (or on the superblock's `bg_table_next` for the first). A crash between writing a segment and linking it leaves an unreferenced segment, which nothing reads: the volume stays as it was before the grow.
+The original Block Group table, at `bg_table_start`, never moves, and holds `bg_table_first_count` descriptors. Each grow appends a **segment**: a header block followed by one descriptor block per added Block Group. The header (`magic` `0xC4553B65`, `count`, `first_bg_id`, `next`, `checksum`) fits in one sector, so linking a new segment is one compare-and-write on the previous segment's `next` (or on the superblock's `bg_table_next` for the first). A crash between writing a segment and linking it leaves an unreferenced segment, which nothing reads: the volume stays as it was before the grow. Since 0.9.5 a live grow links the segment and then publishes the superblock, so the chain can be one segment past the count. Mount and `fsck.cetra` accept exactly that state, and the next grow replaces the segment.
 
 ## Node Registry row (128 bytes)
 
 | Field | Meaning |
 |---|---|
 | `node_uuid[16]` | Stable machine UUID |
-| `state` | `FREE` (0), `REGISTERED` (1), or `REPAIR` (2): held by an offline `fsck.cetra -r` or `growfs.cetra`, so no node mounts while it works |
+| `state` | `FREE` (0), `REGISTERED` (1), or `REPAIR` (2): held by `growfs.cetra` or an offline `fsck.cetra -r`, so no node mounts while it works |
 | `hb_seq` | Heartbeat counter |
 | `last_seen` | Unix seconds of the last heartbeat (backdated on a clean unmount) |
 | `label[32]` | Hostname, informational |
 | `checksum` | CRC32C |
 | `fence_epoch` | The node's lease. Incremented by whoever takes over its resources; the node fences itself when it changes. |
 | `hb_interval_secs` | The node's own heartbeat rate |
-| `caps` | Capabilities its module advertised at registration. Bit `0x1` (`NODE_CAP_LIVE_GROW`): the module understands a grown volume. A row from a module before 0.9 reads 0. |
+| `caps` | Capabilities its module advertised at registration. Bit `0x1` (`NODE_CAP_LIVE_GROW`): the module understands a grown volume; set since 0.9, and a live grow also needs every node on 0.9.5. A row from a module before 0.9 reads 0. |
+| `frees_inflight`, `frees_seq` | Set, and the sequence raised, before a publish that drops blocks the node then frees; cleared by its heartbeat once none is left. A scrub skips its cycle while a live row is set or a sequence moved during it. Since 0.9.5; 0 on older rows. |
 
 ## Per-node journal
 

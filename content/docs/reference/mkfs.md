@@ -20,7 +20,7 @@ The device **must be the first argument**. Options follow it.
 | `-z ZGs` | Number of Zone Groups | 16 | 1–255; clamped down to the actual number of Block Groups |
 | `-b BG_MiB` | Block Group size in MiB | 1024; automatically 512 on small devices | ≥ 512 |
 | `-N inodes` | Total inodes | 1 per 4 MiB of device, capped at 65,536 | ≥ 1024; must fit a 32-bit count |
-| `-J MiB` | Journal size **per node**, in MiB | 2; shrunk so the total across all node slots stays near 5% of the device | `0` disables journaling; otherwise at least 12 KiB per node |
+| `-J MiB` | Journal size **per node**, in MiB | 2; shrunk so the total across all node slots stays near 5% of the device | `0` disables journaling; otherwise at least 12 KiB per node and, since 0.9.5, at most 16384 MiB |
 | `-M nodes` | Node Registry capacity (maximum cluster nodes) | 64 | 1–64 |
 | `-s size` | Format only this much of the device and leave the rest unused, for a later [grow](/docs/reference/growfs/). Takes a `K`, `M`, `G` or `T` suffix; a bare number is MiB. | The whole device | A multiple of 4 KiB |
 | `-n` | Dry run: compute and print the geometry, write nothing | | |

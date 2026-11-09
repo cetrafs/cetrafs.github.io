@@ -16,11 +16,11 @@ Not every release changes the format. Check the release notes. A release that ke
 
 Before you mix versions in one cluster, check that the release notes say the versions are compatible. The multi-node test suite assumes every node runs the same `cetrafs.ko` build.
 
-## From 0.9.2 to 0.9.3 and 0.9.4
+## From 0.9.2 to 0.9.3, 0.9.4 and 0.9.5
 
-0.9.3 and 0.9.4 keep format `0x0009`, so a volume made or grown by 0.9.2 or 0.9.3 mounts as it is. 0.9.3 added one inode field in space that was zero padding on every existing record, so nothing has to be rewritten.
+0.9.3, 0.9.4 and 0.9.5 keep format `0x0009`, so a volume made or grown by an earlier `0x0009` release mounts as it is. 0.9.3 added one inode field, and 0.9.5 two Node Registry fields, in space that was zero padding on every existing record, so nothing has to be rewritten. One exception: since 0.9.5 a per-node journal larger than 16 GiB is refused at mount and by `fsck.cetra`, so a volume made with such a large `-J` has to be reformatted.
 
-Two releases must not share a volume, though. Several fixes in each release change how nodes arbitrate with each other: who may open a file while another node reads it, and when blocks and inode numbers may be freed or reused. They protect only nodes that run them. So the rolling, node-by-node upgrade above doesn't apply this time:
+Two releases must not share a volume, though. Several fixes in each release change how nodes arbitrate with each other: who may open a file while another node reads it, and when blocks and inode numbers may be freed or reused. In 0.9.5 a scrub also stands aside while any node has frees in flight, which an older node neither announces nor honours. They protect only nodes that run them. So the rolling, node-by-node upgrade above doesn't apply this time:
 
 {{< steps >}}
 1. Install the new `cetrafs-dkms` and `cetrafs-tools` on every node.

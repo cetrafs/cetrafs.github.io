@@ -45,14 +45,17 @@ Each returns a clean error. None of them silently does the wrong thing.
 | POSIX ACLs (`setfacl`, `system.posix_acl_*`) | Not supported | Same choice as VMFS. SELinux works through `security.*` xattrs. |
 | Cluster-wide byte-range locks (`fcntl F_SETLK`) | Local only | Byte-range locks work within one node and aren't visible to other nodes. Design around the whole-file lock. |
 | `flock(LOCK_SH)` | `EOPNOTSUPP` | Exclusive-only |
+| `flock(LOCK_EX)` or `LOCK_UN` on a descriptor not open for writing, without `CAP_SYS_ADMIN` | `EBADF` | Since 0.9.5. See [mount options](/docs/reference/mount-options/#using-flock2). |
 | `flock(LOCK_EX)` on a default mount, on a file this node doesn't have open for writing | `EOPNOTSUPP` | There is no automatic lock to take back. See [mount options](/docs/reference/mount-options/#using-flock2). |
 | `rename` with `RENAME_EXCHANGE` or `RENAME_WHITEOUT` | `EINVAL` | `RENAME_NOREPLACE` and plain rename are supported |
 | `fallocate` modes other than allocate (mode `0` / `KEEP_SIZE`) and `PUNCH_HOLE \| KEEP_SIZE` | `EOPNOTSUPP` | e.g. `ZERO_RANGE`, `COLLAPSE_RANGE` |
+| `fallocate` beyond what the file's extent tree can hold | `ENOSPC` | Since 0.9.5 what fits is kept |
 | `O_TMPFILE` | Not supported | |
 | `chattr` / `FS_IOC_SETFLAGS` (immutable, append-only, nodump) | Not supported | |
 | `fsfreeze` (`FIFREEZE`) | `EOPNOTSUPP` | Freeze the VMs, or `sync`, before an array snapshot |
 | Idmapped mounts | Refused by the kernel | |
 | Hardlink to a directory | `EPERM` | A directory has exactly one parent |
+| More than 2<sup>31</sup>−1 links to one inode | `EMLINK` | Since 0.9.5 |
 | Remounting `ro` ↔ `rw`, or changing `nofilelock` | Refused | Unmount and mount again |
 | Formats from other versions | Refused at mount | No in-place migration during the beta |
 

@@ -31,6 +31,8 @@ Writing a journaled block goes like this:
 
 Because each entry is consumed within the operation that wrote it, an entry that survives means exactly one thing: **that node crashed in the middle of that operation.** A clean journal is flagged as such, so mounting after a clean shutdown skips the replay scan entirely, and mount time doesn't grow with journal or device size.
 
+Since 0.9.5 a regular file's extent leaf and index blocks are held back in memory, then written as one journal batch at `fsync` or close, after the data and bitmap bits they name are on stable storage. Before, they waited as dirty buffers and were written in place, where a torn write could leave a leaf that neither replay nor `fsck.cetra` could repair.
+
 ## Replay on a peer's behalf
 
 Journals are replayed only at **ownership boundaries**:

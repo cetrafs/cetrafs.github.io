@@ -33,6 +33,7 @@ Since 0.9.4 every serious error ends in the state a crash leaves, because a cras
 
 - **writes nothing**, and throws away its dirty metadata instead of writing it back;
 - **refuses every read** with `EIO`, cached pages included, because once a peer has taken over this node's files it may be writing them;
+- **refuses `statfs`** since 0.9.5, so `df` fails rather than reporting a frozen view;
 - **stops renewing its heartbeat**, so after the stale window its peers replay its journal and take over its files, as after any crash;
 - **unmounts normally**, writing nothing, and comes back only by unmounting and mounting again.
 
@@ -85,6 +86,8 @@ A second mount of a device this node already has mounted shares the first mount.
 | Killed by systemd after 90 s | A mount can legitimately wait minutes after a crash. See [Mount at boot](/docs/how-tos/mount-volume/#mount-at-boot-with-etcfstab). |
 
 ## Using `flock(2)`
+
+Since 0.9.5 `LOCK_EX` and `LOCK_UN` need a descriptor **open for writing** (`exec 9>>`, not `9<`), or `CAP_SYS_ADMIN`; anything else gets `EBADF`. This `flock` is a mandatory, cluster-wide lock: without that rule, any user who could read an image could lock every other node out of it, or suspend the lock under a running VM's writes.
 
 Under `nofilelock`, `flock` claims the lock:
 

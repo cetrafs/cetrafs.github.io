@@ -11,7 +11,7 @@ toc: true
 defrag.cetra <file-on-a-cetrafs-mount>
 ```
 
-Relocates the file into one contiguous run while the filesystem is live. The file may be open and being written. The work is done in steps aligned to whole extents.
+Relocates the file into one contiguous run while the filesystem is live. The file may be open and being written. The work is done in steps of at most 128 blocks (512 KiB). Since 0.9.5 a larger extent is split at that cap, so guest I/O doesn't wait for a whole extent to be copied.
 
 ## How it stays safe
 

@@ -122,6 +122,8 @@ The details:
 - **`LOCK_UN` is a real handover.** Since 0.9.4 this node's own writes to the file fail with `ETXTBSY` while its lock is suspended: `write`, `O_DIRECT`, truncate and `fallocate` alike, and a store through a mapping gets `SIGBUS`. The handoff never has two writers. Before 0.9.4 writes weren't checked against the lock, and a node could keep writing after another had taken the file. Whatever drives the handoff must still handle a failed `LOCK_EX`; qemu's permission system does, a script has to do it itself.
 - **`LOCK_UN` can fail.** Since 0.9.4 it returns `EIO` if the release didn't reach the device, and the descriptor keeps the lock. Check the result: a hook that ignores it and starts the migration sees the destination's open fail with `ETXTBSY`.
 
+Since 0.9.5 `LOCK_EX` and `LOCK_UN` need a descriptor **open for writing** (`exec 9>>`, not `9<`), or `CAP_SYS_ADMIN`; anything else gets `EBADF`.
+
 `/proc/fs/cetrafs/<dev>/info` counts suspensions and resumptions as `lock_suspends` and `lock_resumes`. A gap between them that keeps growing means something unlocks files and never takes them back.
 
 ## What a reader sees

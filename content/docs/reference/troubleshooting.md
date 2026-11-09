@@ -21,6 +21,8 @@ toc: true
 | `ENOSPC` with free space showing | No owned Zone Group has room and none is free to claim (`write_ready: no`), or the inodes have run out | Check `free_inodes` and `write_ready` |
 | `EOPNOTSUPP` from `fallocate` | A mode other than allocate or punch-hole was requested | [Limits](/docs/reference/limits/#unsupported-operations) |
 | `EOPNOTSUPP` from `flock` | Shared lock requested, or `LOCK_EX` on a default mount for a file this node doesn't have open for writing | Use `LOCK_EX`, on a descriptor opened for writing |
+| `EBADF` from `flock` | Since 0.9.5 `LOCK_EX` and `LOCK_UN` need a descriptor open for writing, or `CAP_SYS_ADMIN` | Open with `exec 9>>`, not `9<` |
+| `EIO` on one node for files with blocks in space another node just grew into | This node's device still has the old size; `dmesg` says to rescan it. Nothing is marked damaged | [Rescan the device](/docs/how-tos/grow-volume/#2-make-every-node-see-the-larger-device) on this node |
 | `EWOULDBLOCK` from `flock -x -n` on a default mount | The lock was suspended and another node has taken the file since | Expected after a handoff. It never takes the lock from the peer: wait, or let the peer close the file |
 | `EBUSY` from `flock -u` | The defragmenter is moving the file | Try again when the pass ends |
 | `EINVAL` from `fsync`, `fdatasync` or `close`, or qemu failing the first flush after a write | The device's logical block is 4 KiB (a 4Kn target), and the module is older than 0.9.1 | Upgrade to 0.9.1 or later. Nothing on the volume was damaged: the update failed instead of writing |
@@ -73,6 +75,7 @@ toc: true
 | `journal_replay_refused` | It rises with no recent failover. Find the block in `dmesg`. |
 | `cas_miscompares` | It stays at 0 while two nodes are both busy (they may not share the device) |
 | `scrub_reclaimed` / `scrub_cycles` | Leaks keep growing across crashes and `scrub_cycles` doesn't move |
+| `scrub_inflight_skips` | Rises with every cycle and leaks never fall. Constant guest discards can do this; it only delays reclaim |
 | `file_cache_drops` far above `file_cache_reconciles` | Files are stuck re-reading metadata from the device; I/O will be slow |
 | `giveback_blocks` rising steadily | Extent splits are running out of room; usually a preallocated or heavily fragmented image |
 

@@ -12,7 +12,7 @@ This page is a map of that effort and of its known gaps. To run the suites yours
 
 ## The gate: `make check`
 
-`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, **387 suites and 3,282 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
+`make check` is the gate that every change must pass. It runs every suite under `tests/image/` and `tests/kernel/`, **474 suites and 3,933 individual assertions**, against a loop-backed volume. It fails if any assertion fails, and also if any suite aborts without failing one. Nothing ships on a red gate.
 
 The kernel suites need about 7 GiB free in the working directory. A full run checks that first and stops at once if the space isn't there, rather than failing on `ENOSPC` 20 minutes in. `CT_MIN_FREE_MB` (default 7168) changes the threshold.
 
@@ -24,11 +24,11 @@ This is where the on-disk format is pinned down: superblock validation, geometry
 
 ### `tests/kernel/`: the regression suite
 
-353 suites, one concern each, against a loaded module and a real mount. Roughly by area:
+438 suites, one concern each, against a loaded module and a real mount. Roughly by area:
 
 | Area | What it covers |
 |---|---|
-| Mount and superblock | Validation, refusal of damaged or foreign volumes, remount, the Block Group table chain of a grown volume, and the claim an offline `fsck -r` or `growfs.cetra` holds while it works |
+| Mount and superblock | Validation, refusal of damaged or foreign volumes, remount, the Block Group table chain of a grown volume, and the claim `fsck -r` or `growfs.cetra` holds while it works |
 | Inodes, directory entries, directories | The namespace, directory growth past inline extents, reuse across nodes |
 | Files, extents, hole punching | The extent tree at depths 0, 1 and 2, truncate, hole punch, sparse files, `FIEMAP` and `SEEK_HOLE`/`SEEK_DATA` |
 | Addresses read off the disk | An extent whose physical block lands in the inode table is refused before anything uses it. Its checksum can't catch that, because the record is validly stamped and just says something impossible; before 0.9.3, following it let an ordinary `write(2)` overwrite inode records |
@@ -40,7 +40,7 @@ This is where the on-disk format is pinned down: superblock validation, geometry
 | Locking | The whole-file exclusive lock, `flock(2)`, the per-inode namespace lock |
 | Journal | Journaling and replay, including a dead node's journal |
 | Scrub and defrag | Background reclaim and the online defragmenter |
-| Growing a volume | `growfs.cetra`, including on a volume made by the previous release |
+| Growing a volume | `growfs.cetra` offline, including on a volume made by the previous release, and live: the publish, a node catching up, crash points between a live grow's writes, racing growers, a node whose device is behind, and journal replay into new Block Groups |
 | Extended attributes | `user.*`, `trusted.*`, `security.*` and LSM labelling |
 
 ## The content oracle
@@ -177,7 +177,7 @@ cetrafs is ahead of it in three places: the content oracle, which names the clas
 7. **No verified I/O at scale.** There is some `O_DIRECT` in the oracle, but no large sequential verify, no mixing of direct and buffered I/O on one file, and no queue-depth pressure. VM images are exactly that workload.
 8. **Large files and large offsets are thin.** There are suites for 16 TiB files, 8 TiB extents and depth-2 trees, but no systematic sweep of the boundaries.
 
-Most of the 353 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
+Most of the 438 kernel suites are **regression** tests, one for each bug already found. That is why the gate is worth running, but it looks backwards. Every new bug found so far has been found by something randomized: the namespace fuzzer, the image fuzzers, `ctest`'s storms and the content oracle. So the plan is more random generators with better oracles, not more hand-written suites.
 
 ## Related
 
