@@ -9,7 +9,7 @@ cetrafs coordinates cluster nodes only through atomic **SCSI COMPARE AND WRITE**
 
 ## Run the probe
 
-The probe opens the device read-only, reports what it can do, and mounts nothing:
+The probe opens the device read-only, reports what it can do, and mounts nothing. It is only a diagnostic: you don't need `caw_probe=` to use cetrafs, because every mount detects CAW support by itself, and a plain `modprobe cetrafs`, or no `modprobe` at all, is enough.
 
 ```sh
 sudo modprobe cetrafs caw_probe=/dev/sdb

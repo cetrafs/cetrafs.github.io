@@ -18,7 +18,7 @@ Cold (offline) migration works either way, because the source closes the image b
 Use the same option on every node:
 
 ```fstab
-/dev/mapper/mpatha  /mnt/cetra  cetrafs  nofilelock,_netdev,nofail  0  0
+/dev/disk/by-id/dm-name-mpatha  /mnt/cetra  cetrafs  nofilelock,_netdev,nofail  0  0
 ```
 
 How the mode works:

@@ -14,7 +14,7 @@ This tutorial **formats** the LUN and, in the last part, crashes one of the host
 ## What you need
 
 - Two hosts, called **node A** and **node B** here, both on a [supported kernel](/docs/intro/status/#supported-platforms), with cetrafs installed. If you haven't installed it, follow [Install from Debian packages](/docs/how-tos/install-packages/) or [Build and install from source](/docs/how-tos/build-from-source/) on both hosts.
-- One iSCSI or Fibre Channel LUN that **both** hosts can see. This tutorial calls it `/dev/sdb`; use your own device path, which can be a multipath alias such as `/dev/mapper/mpatha`.
+- One iSCSI or Fibre Channel LUN that **both** hosts can see. This tutorial calls it `/dev/sdb`; use your own device path, which for a multipath LUN should be a stable link such as `/dev/disk/by-id/dm-uuid-mpath-<wwid>`.
 - The LUN must support SCSI COMPARE AND WRITE. You will check that in the first step.
 
 Commands are labelled with the host they run on.

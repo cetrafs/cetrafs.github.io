@@ -38,6 +38,8 @@ dkms status cetrafs
 sudo mount -t cetrafs <dev> <mnt>     # loads the module automatically through the fs-cetrafs alias
 ```
 
+If the module is refused with `Key was rejected by service`, Secure Boot is on and the DKMS signing key isn't enrolled: see [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
+
 ## Distribute a source tarball
 
 To install the same module on other machines without copying the source tree:

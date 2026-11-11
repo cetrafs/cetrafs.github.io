@@ -117,6 +117,8 @@ It installs the packages on one node after another, and reports any node where t
 
 `proxmox-default-headers` follows the default Proxmox kernel series, so the headers for each new kernel arrive with the kernel and DKMS rebuilds the module automatically. If a node runs a kernel other than the default one, install its headers too: `apt-get install -y proxmox-headers-$(uname -r)`.
 
+If Secure Boot is enabled on a node, enroll the DKMS signing key there once, or the kernel refuses the module with `Key was rejected by service`. See [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
+
 Installing the plugin restarts the Proxmox API services (`pvedaemon`, `pveproxy`, `pvestatd`, `pvescheduler`) so they load it. Running guests are not affected.
 
 `pve-storage-cetrafs-ui` must be the same version as `pve-storage-cetrafs`. After installing or upgrading it, reload the Proxmox web UI in your browser (Ctrl+F5) to see the CetraFS storage type.
@@ -155,6 +157,8 @@ pve3         cetrafs-dkms={{< version >}} cetrafs-tools={{< version >}} pve-stor
 ```
 
 `MISSING` means that package isn't installed on the node. That is expected for `pve-storage-cetrafs-ui` if you chose not to install it. `module=NOT-BUILT` means DKMS has no module for the kernel the node is running: install that kernel's headers (`apt-get install -y proxmox-headers-$(uname -r)`) and check `dkms status cetrafs` there.
+
+`module=built` only means DKMS built it. If `modprobe cetrafs` then fails with `Key was rejected by service`, the node has Secure Boot enabled and the DKMS key isn't enrolled: see [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
 
 ## Upgrade
 

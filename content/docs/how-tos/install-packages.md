@@ -29,6 +29,10 @@ sudo apt install ./cetrafs-dkms_${VER}_all.deb ./cetrafs-tools_${VER}_amd64.deb
 
 DKMS builds the module for the running kernel during installation.
 
+{{< callout type="note" title="Secure Boot" >}}
+With Secure Boot enabled, the kernel refuses the module (`Key was rejected by service`) until the DKMS signing key is enrolled on the node. Do it once per node: see [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
+{{< /callout >}}
+
 The packages are built on Debian 13. `cetrafs-dkms` is architecture-independent, because it ships source, but `cetrafs-tools` is published for **amd64** only. On arm64, [build the packages yourself](#build-the-packages-yourself).
 
 {{< callout type="note" title="A release build is not a test run" >}}

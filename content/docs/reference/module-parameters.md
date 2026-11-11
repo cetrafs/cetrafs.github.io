@@ -34,7 +34,7 @@ Most module parameters are **not bounds-checked**, because the test suites use t
 | `alloc_run_max_blocks` | 4096 | The largest run a file that keeps writing sequentially grows to (16 MiB). Since 0.9.3. |
 | `dio_fill_holes` | 1 | An `O_DIRECT` write into a hole or preallocated space stays direct. `0` brings back the pre-0.9.4 path, a buffered write plus a synchronous flush. See [Performance](/docs/concepts/performance/#direct-writes-into-holes). Since 0.9.4. |
 | `node_uuid` | (unset) | Load-time only. This machine's node identity, as a UUID, in place of the one derived from DMI. Set it on machines that share a DMI UUID: cloned VMs, or boards with placeholder firmware. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). Since 0.9.3. |
-| `caw_probe` | (unset) | Load-time only. A device to probe for compare-and-write capability; the result goes to `dmesg` and nothing is mounted. |
+| `caw_probe` | (unset) | Load-time only, and only a diagnostic: normal use doesn't need it, because each mount detects CAW itself. A device to probe for compare-and-write capability; the result goes to `dmesg` and nothing is mounted. |
 
 ## Internal tuning
 

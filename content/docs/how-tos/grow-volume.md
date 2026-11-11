@@ -33,8 +33,8 @@ Grow the LUN on the array if you haven't. Then, on **every** node, have the kern
 
 ```sh
 echo 1 > /sys/block/sdX/device/rescan          # each path of the LUN
-multipathd resize map <alias-or-wwid>          # if it is multipathed
-blockdev --getsize64 /dev/mapper/<alias-or-wwid>
+multipathd resize map <wwid>                   # if it is multipathed
+blockdev --getsize64 /dev/disk/by-id/dm-uuid-mpath-<wwid>
 ```
 
 For iSCSI, `iscsiadm -m session --rescan` rescans every session. All nodes must report the same new size.
@@ -48,8 +48,8 @@ If the space is already there, because you formatted with `mkfs.cetra -s`, skip 
 Run this on **any one node that has the volume mounted**. Guests keep running and, with the [Proxmox storage plugin](/docs/how-tos/proxmox-plugin/), the storage stays enabled.
 
 ```sh
-growfs.cetra /dev/mapper/<alias-or-wwid> -n      # preview
-growfs.cetra /dev/mapper/<alias-or-wwid>
+growfs.cetra /dev/disk/by-id/dm-uuid-mpath-<wwid> -n      # preview
+growfs.cetra /dev/disk/by-id/dm-uuid-mpath-<wwid>
 ```
 
 The first line of the run says `growing it live`. Check the target size and the number of Block Groups added in the preview. To grow to less than the whole device, add `-s`, for example `-s 2T`. Space smaller than one Block Group (1 GiB by default) at the end of the device is left unused.
@@ -82,9 +82,9 @@ umount /mnt/pve/san1                # on every node
 On one node, preview, grow and verify:
 
 ```sh
-growfs.cetra /dev/mapper/<alias-or-wwid> -n
-growfs.cetra /dev/mapper/<alias-or-wwid>
-fsck.cetra /dev/mapper/<alias-or-wwid>
+growfs.cetra /dev/disk/by-id/dm-uuid-mpath-<wwid> -n
+growfs.cetra /dev/disk/by-id/dm-uuid-mpath-<wwid>
+fsck.cetra /dev/disk/by-id/dm-uuid-mpath-<wwid>
 ```
 
 Every node in the preview should read `ready`. Then mount on every node again, or re-enable the Proxmox storage with `pvesm set san1 --disable 0`, and check the new size with `df -h` or `pvesm status`.

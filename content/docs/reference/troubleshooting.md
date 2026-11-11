@@ -28,6 +28,15 @@ toc: true
 | `EINVAL` from `fsync`, `fdatasync` or `close`, or qemu failing the first flush after a write | The device's logical block is 4 KiB (a 4Kn target), and the module is older than 0.9.1 | Upgrade to 0.9.1 or later. Nothing on the volume was damaged: the update failed instead of writing |
 | `EINVAL` from `rename` | `RENAME_EXCHANGE` or `RENAME_WHITEOUT` | Not supported |
 
+## Loading the module
+
+| Symptom | Meaning | Next step |
+|---|---|---|
+| `modprobe`: `Key was rejected by service` | Secure Boot is enabled and the module's signing key isn't enrolled. Every DKMS-built module does this | [Enroll the DKMS key](/docs/how-tos/secure-boot/) on the node |
+| `insmod`: `Required key not available` or `Key was rejected by service` | Secure Boot and a module you built yourself, which isn't signed | [Sign it](/docs/how-tos/secure-boot/#modules-you-build-yourself) |
+| `unknown filesystem type 'cetrafs'` | The module isn't installed for this kernel, or the kernel refused to load it | `dkms status cetrafs`; install the headers for the running kernel. If it is installed, `modprobe cetrafs` shows why it won't load |
+| `insmod`: unknown symbol `crc32c` | CRC32C is a separate module on this kernel | `modprobe libcrc32c`, or install the module and use `modprobe` |
+
 ## Mount failures
 
 | Symptom | Meaning | Next step |
@@ -43,8 +52,6 @@ toc: true
 | "CAW discovery failed … refusing the mount" | cetrafs couldn't determine whether the device supports compare-and-write | Check the storage path; the probe will show the error |
 | Mounted read-only unexpectedly | Unknown read-only-compatible feature bit | Tools and module are older than the volume |
 | Mounts, but `write_ready: no` | Every Zone Group is owned by a live peer | Normal on a busy cluster; persistent means too few Zone Groups for the number of writers |
-| `unknown filesystem type 'cetrafs'` | Module not installed for this kernel | `dkms status cetrafs`; install the headers for the running kernel |
-| `insmod`: unknown symbol `crc32c` | CRC32C is a separate module on this kernel | `modprobe libcrc32c`, or install the module and use `modprobe` |
 
 ## Tool exit codes
 

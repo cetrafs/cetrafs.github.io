@@ -10,7 +10,7 @@ In this tutorial you turn a shared SAN LUN into a datastore for a Proxmox VE clu
 ## What you need
 
 - A **Proxmox VE cluster** on the `7.0.14-*-pve` kernel, with cetrafs installed on **every** node. See [Install on Proxmox VE](/docs/how-tos/install-proxmox/).
-- A **shared LUN** visible to every node, here `<dev>`. This can be `/dev/sdb`, or a multipath alias such as `/dev/mapper/mpatha`.
+- A **shared LUN** visible to every node, here `<dev>`. This can be `/dev/sdb`, or, for a multipath LUN, a stable link such as `/dev/disk/by-id/dm-uuid-mpath-<wwid>`.
 - The LUN must support **SCSI COMPARE AND WRITE (ATS)**.
 - **Proxmox HA with fencing** configured, if you will run this in production. cetrafs relies on it to power off a host that has stopped responding (see [Fencing and split-brain](/docs/concepts/fencing/)).
 

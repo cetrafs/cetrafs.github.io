@@ -75,7 +75,7 @@ A target that exports several LUNs needs one cetrafs storage per LUN, each with 
 For a device that is already present on every node, such as a Fibre Channel LUN or a multipath device, skip the iSCSI storage and give the device path:
 
 ```sh
-DEV=/dev/mapper/<alias-or-wwid>
+DEV=/dev/disk/by-id/dm-uuid-mpath-<wwid>
 
 # once, from one node
 modprobe cetrafs caw_probe=$DEV && dmesg | tail
@@ -90,9 +90,9 @@ pvesm add cetrafs cetra1 \
 
 The path must be **stable** and **the same on every node**. The plugin refuses `/dev/sdX` and `/dev/dm-N`, whose numbers depend on discovery order. Use one of:
 
-- `/dev/mapper/<name>`: for multipath, the WWID or an alias that is the same on all nodes;
-- `/dev/disk/by-id/dm-uuid-...` or `/dev/disk/by-id/dm-name-...`;
-- `/dev/disk/by-id/wwn-...` or `/dev/disk/by-id/scsi-...` for a single-path disk.
+- `/dev/disk/by-id/dm-uuid-mpath-<wwid>` for multipath (recommended), or `/dev/disk/by-id/dm-name-<alias>` if the alias is the same on all nodes;
+- `/dev/disk/by-id/wwn-...` or `/dev/disk/by-id/scsi-...` for a single-path disk;
+- `/dev/mapper/<name>` is accepted too, but a `by-id` link keeps pointing at the same device whatever the `/dev/mapper` alias becomes after a multipath configuration change.
 
 For multipath, run `multipathd` on every node with the same `multipath.conf`, and check `multipath -ll` on each node before you add the storage. Prefer `--cetrafs-device` over `--base` with multipath: `--base` resolves to the LUN's `scsi-*` link, which is not guaranteed to be the multipath device.
 
