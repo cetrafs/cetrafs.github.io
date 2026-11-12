@@ -14,7 +14,7 @@
   font-display: swap;
 }
 
-/* Palette derived from the cetrafs logo: a cobalt-navy tile (#032D7B) with a white line. */
+/* Site palette: cobalt navy (#032D7B). The logo itself uses the brand navy #011346 (--mark-tile). */
 :root {
   --bg: #F2F5FA;
   --surface: #ffffff;
@@ -27,6 +27,8 @@
   --brand: #032D7B;
   --brand-tile: #032D7B;
   --brand-line: #ffffff;
+  --mark-tile: #011346;
+  --mark-line: #ffffff;
   --ok: #157A4A;
   --warn: #9A5B00;
   --danger: #B42318;
@@ -166,7 +168,7 @@ img { max-width: 100%; }
   overflow: hidden;
 }
 .hero::after {
-  /* the logo's wave line, echoed across the bottom of the hero */
+  /* a wave across the bottom of the hero */
   content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 90px;
   background: var(--bg);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 90' preserveAspectRatio='none'%3E%3Cpath d='M0 40 C180 0 300 0 420 30 S640 90 760 60 S1000 0 1140 20 S1340 70 1440 40 V90 H0Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;
@@ -176,8 +178,7 @@ img { max-width: 100%; }
   display: grid; grid-template-columns: 1fr auto; gap: 56px; align-items: center; }
 .hero-logo { display: flex; justify-content: center; }
 .hero-logo .brand-mark { width: 220px; height: 220px; filter: drop-shadow(0 18px 40px rgba(0,0,0,.35)); }
-.hero-logo .brand-mark rect { fill: #ffffff; }
-.hero-logo .brand-mark g { stroke: #032D7B; }
+.hero-logo .brand-mark { --mark-tile: #ffffff; --mark-line: #011346; }
 .hero .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600;
   padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); margin: 0 0 22px; }
 /* Beta badge: amber pill with a slow pulsing glow, so it's hard to miss that cetrafs is young. */

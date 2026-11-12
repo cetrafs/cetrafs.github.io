@@ -81,9 +81,12 @@ mkfs defaults.
 
 ## Brand
 
-The logo is redrawn as SVG (`themes/cetrafs/static/logo/cetrafs-mark.svg`,
-inlined via `partials/brand-mark.html`) from `cetrafs-logo.png` in the source
-repo. Brand navy is `#032D7B`.
+The logo and favicons come from the `cetrafs-brand` repository. The favicons,
+the web manifest icons and `logo/*.svg` in `themes/cetrafs/static/` are copies of
+its `web/` and `logo/` files. `partials/brand-mark.html` inlines the mark
+(`logo/icon-rounded.svg`, or the simplified `web/favicon.svg` below 24 px) with
+its colours taken from `--mark-tile` and `--mark-line`. Brand navy is `#011346`;
+the site palette around it is cobalt `#032D7B`.
 
 ## Deployment
 

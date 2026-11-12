@@ -1,6 +1,6 @@
 {{/* schema.org structured data: the project and site on the home page, a TechArticle on each doc page. */}}
 {{ $author := dict "@type" "Person" "name" .Site.Params.author }}
-{{ $logo := dict "@type" "ImageObject" "url" ("icon-512.png" | absURL) "width" 512 "height" 512 }}
+{{ $logo := dict "@type" "ImageObject" "url" ("android-chrome-512x512.png" | absURL) "width" 512 "height" 512 }}
 {{/* The project as an Organization: Google takes the logo for search results from it. */}}
 {{ $org := dict "@type" "Organization" "@id" (print .Site.Home.Permalink "#organization") "name" "cetrafs" "url" .Site.Home.Permalink "logo" $logo "founder" $author }}
 {{ with .Site.Params.repoURL }}{{ $org = merge $org (dict "sameAs" (slice .)) }}{{ end }}
