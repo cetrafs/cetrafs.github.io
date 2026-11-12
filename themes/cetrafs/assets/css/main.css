@@ -14,7 +14,7 @@
   font-display: swap;
 }
 
-/* Site palette: cobalt navy (#032D7B). The logo itself uses the brand navy #011346 (--mark-tile). */
+/* Palette built on the brand navy #011346. */
 :root {
   --bg: #F2F5FA;
   --surface: #ffffff;
@@ -24,18 +24,17 @@
   --muted: #56647F;
   --accent: #1C4FC9;
   --accent-ink: #ffffff;
-  --brand: #032D7B;
-  --brand-tile: #032D7B;
-  --brand-line: #ffffff;
+  --brand: #011346;
+  --brand-fill: #011346;
   --mark-tile: #011346;
   --mark-line: #ffffff;
   --ok: #157A4A;
   --warn: #9A5B00;
   --danger: #B42318;
-  --shadow: 0 1px 2px rgba(3,45,123,.05), 0 10px 30px rgba(3,45,123,.07);
+  --shadow: 0 1px 2px rgba(1,19,70,.05), 0 10px 30px rgba(1,19,70,.07);
   --radius: 16px;
   --radius-sm: 9px;
-  --hero-bg: linear-gradient(165deg,#0A3A93 0%,#032D7B 55%,#021F57 100%);
+  --hero-bg: linear-gradient(165deg,#0A2263 0%,#011346 55%,#000A26 100%);
   --hero-ink: #ffffff;
   --hero-muted: rgba(255,255,255,.78);
   --code-bg: #0B1733;
@@ -46,20 +45,20 @@
   :root:not([data-theme="light"]) {
     --bg: #060C1A; --surface: #0C1630; --surface-2: #12203F; --border: #1F3260;
     --text: #E6ECF8; --muted: #93A3C2; --accent: #7EA6FF; --accent-ink: #061026;
-    --brand: #7EA6FF; --brand-tile: #1F4FC0; --brand-line: #ffffff;
+    --brand: #7EA6FF; --brand-fill: #1F4FC0;
     --ok: #4FD18B; --warn: #F2B045; --danger: #FF7A6E;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.4);
-    --hero-bg: linear-gradient(165deg,#0B2463 0%,#071A4A 55%,#060C1A 100%);
+    --hero-bg: linear-gradient(165deg,#0A1C52 0%,#05113A 55%,#060C1A 100%);
     --code-bg: #050A17;
   }
 }
 :root[data-theme="dark"] {
   --bg: #060C1A; --surface: #0C1630; --surface-2: #12203F; --border: #1F3260;
   --text: #E6ECF8; --muted: #93A3C2; --accent: #7EA6FF; --accent-ink: #061026;
-  --brand: #7EA6FF; --brand-tile: #1F4FC0; --brand-line: #ffffff;
+  --brand: #7EA6FF; --brand-fill: #1F4FC0;
   --ok: #4FD18B; --warn: #F2B045; --danger: #FF7A6E;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 34px rgba(0,0,0,.4);
-  --hero-bg: linear-gradient(165deg,#0B2463 0%,#071A4A 55%,#060C1A 100%);
+  --hero-bg: linear-gradient(165deg,#0A1C52 0%,#05113A 55%,#060C1A 100%);
   --code-bg: #050A17;
 }
 
@@ -203,8 +202,8 @@ img { max-width: 100%; }
 .hero h1 { font-size: 48px; font-weight: 750; margin: 0 0 18px; letter-spacing: -1.2px; line-height: 1.1; }
 .hero p.lead { font-size: 18.5px; color: var(--hero-muted); margin: 0 0 32px; line-height: 1.6; max-width: 620px; }
 .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
-.hero .btn-primary { background: #ffffff; color: #032D7B; }
-.hero .btn-primary:hover { color: #032D7B; filter: brightness(.94); }
+.hero .btn-primary { background: #ffffff; color: #011346; }
+.hero .btn-primary:hover { color: #011346; filter: brightness(.94); }
 .hero .btn-outline { color: #ffffff; border-color: rgba(255,255,255,.4); }
 .hero .btn-outline:hover { background: rgba(255,255,255,.1); color: #fff; }
 .hero-404 { padding-bottom: 160px; }
@@ -446,7 +445,7 @@ img { max-width: 100%; }
 .doc-kind-how-tos, .quadrant.q-how-tos   { --kind: #1C4FC9; --q: #1C4FC9; }
 .doc-kind-concepts, .quadrant.q-concepts  { --kind: #7A3FC4; --q: #7A3FC4; }
 .doc-kind-reference, .quadrant.q-reference { --kind: #9A5B00; --q: #9A5B00; }
-.doc-kind-intro { --kind: #032D7B; }
+.doc-kind-intro { --kind: #011346; }
 :root[data-theme="dark"] .doc-kind span, :root[data-theme="dark"] .quadrant { filter: saturate(1.1) brightness(1.25); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .doc-kind span, :root:not([data-theme="light"]) .quadrant .q-kind { filter: brightness(1.45); } }
 
@@ -487,7 +486,7 @@ img { max-width: 100%; }
 .docs-content .steps > ol > li::before {
   counter-increment: step; content: counter(step);
   position: absolute; left: 0; top: 1px; width: 28px; height: 28px; border-radius: 50%;
-  background: var(--brand-tile); color: #fff; font-weight: 700; font-size: 13.5px;
+  background: var(--brand-fill); color: #fff; font-weight: 700; font-size: 13.5px;
   display: flex; align-items: center; justify-content: center;
 }
 .docs-content dl dt { font-family: var(--font-mono); font-size: 14px; font-weight: 600; margin-top: 16px; }

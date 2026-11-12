@@ -36,7 +36,7 @@ What the nodes have to agree on is *who may change what*. cetrafs settles that t
   <line x1="230" y1="66" x2="280" y2="66" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="4 4"/>
   <line x1="480" y1="66" x2="530" y2="66" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="4 4"/>
   <text x="380" y="136" text-anchor="middle" fill="var(--danger)" font-size="12">no network protocol between nodes</text>
-  <rect x="30" y="200" width="700" height="112" rx="14" fill="var(--brand-tile)"/>
+  <rect x="30" y="200" width="700" height="112" rx="14" fill="var(--brand-fill)"/>
   <text x="380" y="228" text-anchor="middle" fill="#fff" font-weight="700" font-size="15">Shared LUN (iSCSI / Fibre Channel)</text>
   <g font-size="11.5" fill="#fff" font-family="var(--font-mono)">
     <rect x="48" y="244" width="120" height="50" rx="7" fill="rgba(255,255,255,.14)"/><text x="108" y="265" text-anchor="middle">Node Registry</text><text x="108" y="282" text-anchor="middle" opacity=".75">heartbeats</text>
