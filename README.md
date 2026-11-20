@@ -85,8 +85,9 @@ The logo and favicons come from the `cetrafs-brand` repository. The favicons,
 the web manifest icons and `logo/*.svg` in `themes/cetrafs/static/` are copies of
 its `web/` and `logo/` files. `partials/brand-mark.html` inlines the mark
 (`logo/icon-rounded.svg`, or the simplified `web/favicon.svg` below 24 px) with
-its colours taken from `--mark-tile` and `--mark-line`. Brand navy is `#011346`,
-and the site palette is built on it.
+its colours taken from `--mark-tile`, `--mark-line` and `--mark-star`. Brand
+navy is `#011346`, and the site palette is built on it. The gold `#E8B04B` is
+for the star only, never for the outline or text.
 
 ## Deployment
 
