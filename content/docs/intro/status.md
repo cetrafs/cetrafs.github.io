@@ -1,49 +1,64 @@
 ---
 weight: 10
 title: "Project status"
-description: "Where cetrafs stands today: what has been verified, what hasn't, and how to trial it safely."
+description: "Where cetrafs stands: ready for production on its target workload, what that rests on, the supported platforms, and what is out of scope."
 toc: true
 ---
 
-{{< callout type="warning" title="Beta software" >}}
-cetrafs is young. It has been heavily reviewed, fuzzed and crash-tested, but it has not had years of production use the way VMFS or ext4 have. **Keep independent backups on other storage**, and trial it on a LUN you can afford to reformat before it holds anything you cannot lose.
-{{< /callout >}}
+cetrafs is **ready for production use on its target workload**: VM disk images on a shared LUN with atomic COMPARE AND WRITE. The on-disk format, the cluster protocol and the recovery paths are complete, and the list of known open defects is empty.
+
+That claim rests on testing, not on years in the field. Every change goes through 837 regression suites, a two-node suite on real SAN storage, crash replay, fuzzing and a KASAN build. [How cetrafs is tested](/docs/concepts/testing/) describes what is tested, how, and how long it takes.
+
+As with any storage system, keep backups on other storage, and run a multi-node cluster with a cluster manager that can fence hosts.
 
 ## Current release
 
-The current version is **{{< version >}}**. Its on-disk format is `0x0009`, the same as 0.9.2, 0.9.3 and 0.9.4: a volume they made or grew mounts as it is. Several fixes in 0.9.3, 0.9.4 and 0.9.5 change how nodes arbitrate with each other, so **upgrade every node** and don't mount one volume from two releases at once: see [Upgrade](/docs/how-tos/upgrade-reformat/#from-092-to-093-094-and-095). Since 0.9.2 cetrafs no longer mounts format `0x0008`, from 0.8.x: grow such a volume with 0.9.1 first, which stamps it `0x0009`, or reformat it. See [Upgrade](/docs/how-tos/upgrade-reformat/#from-08x-to-09x). The format can still change between releases, and in general there is **no in-place migration**: moving to a new format version means evacuating the data, reformatting and restoring. See [Upgrade](/docs/how-tos/upgrade-reformat/).
+The current release is **{{< version >}}**. It writes on-disk format **`0x000A`**, and mounts nothing else.
+
+`0x000A` is the format change that release was built around: 48-bit file offsets, deeper extent trees, an inode table that grows with the volume, a checksum on every bitmap sector, a backup superblock, and the fields behind the cluster fixes. Volumes from 0.9.x (format `0x0009`) aren't mounted. Moving to {{< version >}} means evacuating the data, reformatting and restoring: see [Upgrade to a new format version](/docs/how-tos/upgrade-reformat/).
+
+Within one format version, nodes running different builds or different kernels can share a volume. A node whose module speaks another format version is refused at mount, so two formats never share a volume.
+
+## What changed since 0.9.5
+
+- **Bigger files.** A file can address 2<sup>48</sup> blocks (1 EiB, up from 16 TiB), and its extent tree goes one level deeper, to about 65 million extents. A directory grows the same way, to about 3.9 million entries.
+- **A volume that grows in every dimension.** A grow now adds inodes as well as space, so the inode count is no longer fixed at `mkfs` time.
+- **Space returned to thin LUNs.** An emptied Block Group is unmapped as it goes back to the pool, `fstrim` works, and `-o discard` returns space as it is freed. `fallocate(ZERO_RANGE)` zeroes in place with WRITE ZEROES. See [Return free space to a thin LUN](/docs/how-tos/reclaim-thin-space/).
+- **Stronger integrity.** Every 512-byte sector of the allocation bitmaps has its own checksum; every address read off the disk is range-checked before it is used; a copy of the superblock sits at 8 MiB; and damage found at runtime leaves a lasting "needs fsck" mark.
+- **No `fsck` after a crash.** Mounting again repairs what an unclean shutdown left. `fsck.cetra --live` checks a volume while other nodes use it, and `fsck.cetra -r` rebuilds a damaged Zone Group, Block Group or Node Registry record.
+- **Faster failover.** An HA agent that has powered a host off can declare it dead at once, instead of waiting out the stale window.
+- **Honest byte-range locks.** `fcntl` locks are refused on a default mount instead of silently binding one node. See [`fcntl` locks](/docs/reference/mount-options/#fcntl-byte-range-locks).
+- **A thin pool that runs out of space pauses writes** instead of stopping the mount, as VMFS does.
+- **Defragmentation of sparse and preallocated images**, and on `nofilelock` mounts for files no other node has open.
+- **Nanosecond timestamps** and a birth time, reported by `statx`.
+- **Hundreds of fixes**, most of them found by the new test tiers: two-node interleavings, crash cuts, `ENOSPC` sweeps and fuzzing.
 
 ## Supported platforms
 
 | | Supported | Notes |
 |---|---|---|
-| Kernels | `7.0.14`, `7.1.8+deb13` (Debian); Proxmox VE `7.0.14-*-pve` | The module also builds against kernels up to 7.2. Older kernels are not supported. The code is new, so other kernels are unverified: they may fail to build or load. |
-| Architectures | arm64, amd64 | The on-disk format is little-endian but written to be portable across byte order. Only little-endian hosts have been tested. Keep a cluster on one architecture. The kernel must use 4 KiB pages: since 0.9.4 an arm64 kernel built with 16 KiB or 64 KiB pages builds the module but refuses the mount. |
-| Storage | Any block device for a single node; for a cluster, a LUN with SCSI COMPARE AND WRITE, with 512-byte or 4 KiB logical blocks (4Kn since 0.9.1) | NVMe's fused compare-and-write is not wired up, so an NVMe device is single-node only. |
+| Kernels | `7.0.14`, `7.1.8+deb13` (Debian), `7.2.11`; Proxmox VE `7.0.14-*-pve` | DKMS builds the module for kernels 7.0 to 7.2 and skips any other. |
+| Architectures | amd64, arm64 | The kernel must use 4 KiB pages. The on-disk format is little-endian and portable; only little-endian hosts are tested. |
+| Storage | Any block device for one node. For a cluster, a SCSI LUN with COMPARE AND WRITE, with 512-byte or 4 KiB logical blocks, single-path or dm-multipath | NVMe and NVMe over Fabrics devices work on one node only: NVMe compare-and-write isn't wired up. |
+| Array cache | Non-volatile or write-through | cetrafs orders its writes with cache flushes. An array that acknowledges a flush before the data is safe breaks that ordering, and nothing on the host can detect it. |
 
-## What has been verified
+## Validated on
 
-The release gate is a scripted matrix (`tests/release-matrix.sh`) plus a multi-node suite run against real hardware:
+- **Enterprise Fibre Channel**: HPE 3PAR over 32 Gb FC multipath, two- and three-node Proxmox VE clusters, arm64 and amd64.
+- **iSCSI**: a commodity iSCSI LUN under a three-node amd64 Proxmox VE cluster.
+- **Loop devices**, for the single-node gate.
 
-- **Loop-device integration suite** (`make check`): 474 suites and 3,933 assertions covering every feature end to end, including simulated cross-node scenarios and a randomized content oracle that checks every byte read back. See [How cetrafs is tested](/docs/concepts/testing/).
-- **Multi-node suite** (`ctest/`): runs against a real shared LUN between separate kernels. Its scenarios include the real COMPARE AND WRITE primitive, lock races, journal replay against a fenced peer, torn records, extent-leaf staleness and inode-number reuse. Its first full green run was on a three-node arm64 Proxmox cluster on an HPE 3PAR array over 32 Gb FC multipath. A second, on 0.7.4, used a three-node amd64 Proxmox cluster on a commodity iSCSI LUN: all 27 scenarios passed, three times in a row.
-- **Crash-consistency rig**: replays write logs with `dm-log-writes`, injects faults with `dm-flakey`, reorders writes, cuts power without a flush first, and tears blocks at every sector boundary.
-- **Fuzzing** of the mount and `fsck` parsing boundaries with hostile images.
-- **Soak testing** with mixed workloads and a full `fsck` after every round.
+The last full validation, on the {{< version >}} format, passed every one of 6,623 assertions, every two-node release scenario on the FC rig, 6,600 fuzz iterations with no finding, and a KASAN build with no report. [How cetrafs is tested](/docs/concepts/testing/#the-last-validation-run) has the details.
 
-This is evidence from tests, not from years in the field. Some race scenarios have only been run a handful of times on real hardware.
+## Out of scope
 
-## What is deliberately out of scope
+These are design decisions, not missing features: POSIX ACLs, special files (`mknod`), `O_TMPFILE`, `chattr` flags, `RENAME_EXCHANGE` and `RENAME_WHITEOUT`, cluster-wide byte-range locks, volumes spanning several LUNs, snapshots, big-endian hosts, and powering off hosts (the cluster manager's job). See [Limits and unsupported operations](/docs/reference/limits/).
 
-These are design decisions, not missing features: POSIX ACLs, special files (`mknod`), `O_TMPFILE`, `chattr` flags, `RENAME_EXCHANGE`/`RENAME_WHITEOUT`, cluster-wide byte-range locking, volumes spanning several LUNs, big-endian hosts, in-place format migration, and hardware STONITH (the cluster manager's job). See [Limits and unsupported operations](/docs/reference/limits/) for the reasoning behind each.
+Planned, not built yet: rolling upgrades across a format change, and NVMe compare-and-write.
 
-## Growing a mounted volume
+## Before a first deployment
 
-Since 0.9.5 [`growfs.cetra`](/docs/how-tos/grow-volume/) can grow a volume while nodes have it mounted. A first live grow has passed on two nodes over a real compare-and-write LUN. Still to run across nodes: a second grow, a node whose device hasn't been rescanned, and a VM streaming through the grow. A Zone Group claim racing the publish hasn't been tested on any setup. Shrinking will not be supported.
-
-## A sensible trial plan
-
-The safest way to build confidence is to test one layer at a time, so a fault can be pinned to the layer that caused it. The guide [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/) walks through this, from the raw LUN up to live-migrating VMs under load.
+Check the two properties of your SAN that cetrafs depends on, atomic compare-and-write and coherent reads across hosts, then prove each layer before the next. [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/) walks through it, from the raw LUN to live-migrating VMs under load.
 
 ## License
 

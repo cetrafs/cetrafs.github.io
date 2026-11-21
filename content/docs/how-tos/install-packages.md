@@ -35,9 +35,9 @@ With Secure Boot enabled, the kernel refuses the module (`Key was rejected by se
 
 The packages are built on Debian 13. `cetrafs-dkms` is architecture-independent, because it ships source, but `cetrafs-tools` is published for **amd64** only. On arm64, [build the packages yourself](#build-the-packages-yourself).
 
-{{< callout type="note" title="A release build is not a test run" >}}
-The release packages are built by CI, which doesn't run the test suites. Those need a loadable module and real hardware, and run before a release is tagged. Validate cetrafs on your own storage before you trust it with data: see [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/).
-{{< /callout >}}
+The release is tested before it is tagged: the full gate, the two-node suite on real SAN storage, the fuzzers and the crash rig (see [How cetrafs is tested](/docs/concepts/testing/)). The packages themselves are built by CI from the tagged source. Before the first deployment, also [validate your storage stack](/docs/how-tos/validate-storage-stack/): it checks the properties of your SAN that cetrafs relies on.
+
+The packaged module is a release build: it refuses every test-only module parameter.
 
 ## Verify
 
@@ -47,19 +47,21 @@ modinfo cetrafs | head -3
 which mkfs.cetra fsck.cetra defrag.cetra growfs.cetra
 ```
 
-Since 0.9.3 the module's `version` ends in `+src.` and a hash of the source it was built from. Every node of a cluster should show the same hash, even when the nodes run different kernel builds.
+The module's `version` ends in `+src.` and a hash of the source it was built from, so you can tell which release each node runs.
 
 You don't need to load the module by hand or add it to `/etc/modules-load.d`. The module declares the `fs-cetrafs` alias, so the first `mount -t cetrafs` loads it, just as with an in-tree filesystem. That includes mounts from `/etc/fstab` at boot and mounts made by a cluster manager.
 
 ## Upgrade
 
-Download the new release and install it the same way, on every node. Before you upgrade, read the release notes: if the on-disk format version changed, the new module can't mount the old volume, and you have to [move the data and reformat](/docs/how-tos/upgrade-reformat/).
+Download the new release and install it the same way, on every node. Before you upgrade, read the release notes: if the on-disk format version changed, the new module can't mount the old volume, and you have to [move the data and reformat](/docs/how-tos/upgrade-reformat/). Upgrading from 0.9.x to 0.10 is such a change.
 
 Keep `cetrafs-dkms` and `cetrafs-tools` at the same version. An older `fsck.cetra` run against a volume from a newer module can misread the format and report corruption that isn't there.
 
 ## After a kernel upgrade
 
-Install the headers for the new kernel at the same time as the kernel itself (on Proxmox, the `proxmox-headers-*` package that matches the kernel). DKMS then rebuilds `cetrafs.ko` automatically. Check with `dkms status cetrafs` before you reboot into the new kernel.
+Install the headers for the new kernel at the same time as the kernel itself (on Proxmox, the `proxmox-headers-*` package that matches the kernel). DKMS then rebuilds `cetrafs.ko` automatically.
+
+DKMS builds cetrafs only for kernels 7.0 to 7.2, the range its sources were written against, and skips any other kernel. A node that boots a kernel outside that range has no cetrafs. Keep the running kernel pinned (on Proxmox, `proxmox-boot-tool kernel pin <version>`), and move the pin only after `dkms status cetrafs` lists the module as installed for the new kernel.
 
 ## Build the packages yourself
 
@@ -82,7 +84,7 @@ make deb-clean
 ```
 
 {{< callout type="warning" title="A built package is not a tested one" >}}
-Package builds skip the test suite, because it needs root, loads the module and takes minutes. Run `make check` yourself before you deploy a build. See [Run the test suites](/docs/how-tos/run-tests/).
+Package builds skip the test suite: it needs root, loads the module and takes hours. For an unreleased commit, run `make check` yourself before you deploy it. See [Run the test suites](/docs/how-tos/run-tests/).
 {{< /callout >}}
 
 Copy both `.deb` files to each node and install them with `apt install ./<file>.deb`, as above.

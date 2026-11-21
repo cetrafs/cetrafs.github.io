@@ -16,7 +16,7 @@ By the end you will have:
 - checked the volume with `fsck.cetra`.
 
 {{< callout type="note" title="Before you start" >}}
-You need a host running a **supported kernel** (`7.0.14` or `7.1.8+deb13`, including Proxmox VE `7.0.14-*-pve`) and root access. Use a test machine or VM. The tutorial touches only a disk image it creates, but it does load a kernel module.
+You need a host running a **supported kernel** (`7.0.14`, `7.1.8+deb13` or `7.2.11`, including Proxmox VE `7.0.14-*-pve`) and root access. Use a test machine or VM. The tutorial touches only a disk image it creates, but it does load a kernel module.
 {{< /callout >}}
 
 ## 1. Install the build dependencies
@@ -118,7 +118,7 @@ Every mounted volume has a directory under `/proc/fs/cetrafs/`, named after the 
 
 ```sh
 DEV=$(basename $LOOP)
-cat /proc/fs/cetrafs/$DEV/info | head -20
+sudo cat /proc/fs/cetrafs/$DEV/info | head -20
 ```
 
 Find these fields in the output:
@@ -131,7 +131,7 @@ Find these fields in the output:
 Now look at the cluster view:
 
 ```sh
-cat /proc/fs/cetrafs/$DEV/cluster
+sudo cat /proc/fs/cetrafs/$DEV/cluster
 ```
 
 There is a single row, which is you. On a real cluster each mounted node has a row with its heartbeat counter (`hb_seq`) and whether this node considers it stale.

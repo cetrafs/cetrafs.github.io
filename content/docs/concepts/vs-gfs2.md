@@ -41,18 +41,18 @@ These rows describe design decisions, not scores. Several of them are deliberate
 | Journaling | All metadata, per node | Per node, for in-place blocks; global tables protected by atomic compare-and-write instead |
 | Byte-range locks | Yes, cluster-wide | Not a cluster primitive |
 | POSIX ACLs | Yes | No: mode bits and xattrs only |
-| Maturity | In mainline since 2006 | Beta, out of tree |
-| On-disk stability | Stable, long-supported | No backward compatibility during the beta |
+| Maturity | In mainline since 2006 | Production-ready for VM images, out of tree |
+| On-disk compatibility | Stable, long-supported | Within a format version; a format change means a reformat |
 
 ## Where GFS2 is ahead
 
 Every advantage on one side is paid for on the other. These are real, and none of them is a rounding error.
 
-- **Two decades of production.** GFS2 has been in mainline Linux since 2006, has commercial support, and has run on thousands of clusters. cetrafs is in beta. No amount of testing replaces time in the field, and this is the biggest single difference between them.
-- **Fencing that actually stops a host.** Pacemaker STONITH powers the node off. cetrafs increments a storage lease, and the displaced node fences itself on its next heartbeat; writes already in flight before that check still land. cetrafs closes the storage half of split-brain and leaves the rest to others, so you still need a cluster manager with fencing to run it safely on more than one host.
+- **Two decades of production.** GFS2 has been in mainline Linux since 2006, has commercial support, and has run on thousands of clusters. cetrafs's evidence is its test effort, not years in the field.
+- **Fencing that actually stops a host.** Pacemaker STONITH powers the node off. cetrafs uses a storage lease: a node that can't renew it stops writing before its peers take over, but writes it had already handed to the array still land. cetrafs closes the storage half of split-brain and leaves the rest to others, so you still need a cluster manager with fencing to run it safely on more than one host.
 - **Real quorum.** corosync can tell a partitioned cluster from a dead node. cetrafs's liveness is a heartbeat timeout, so a host that is merely slow looks the same as one that has failed.
 - **No special storage requirement.** GFS2 runs on any shared block device. cetrafs needs atomic COMPARE AND WRITE; without it a volume can only be mounted by one host.
-- **Volumes that grow.** GFS2 grows while mounted, and with LVM across several devices. A cetrafs volume spans exactly one block device, and since 0.9.5 can grow with it while mounted.
+- **Volumes across devices.** GFS2 grows while mounted, and with LVM across several devices. A cetrafs volume spans exactly one block device, and grows with it while mounted.
 
 ## Where cetrafs is ahead
 
@@ -64,7 +64,7 @@ Every advantage on one side is paid for on the other. These are real, and none o
 
 ## Measured throughput
 
-Same host, same SAN LUN, same kernel. 3 GB written to a new file each run, cetrafs 0.6 on arm64.
+Same host, same SAN LUN, same kernel. 3 GB written to a new file each run, on arm64.
 
 | Mode | cetrafs | GFS2 |
 |---|---|---|
@@ -79,4 +79,4 @@ Same host, same SAN LUN, same kernel. 3 GB written to a new file each run, cetra
 
 If you need a shared POSIX filesystem, cetrafs isn't a candidate and doesn't try to be. It lacks byte-range locking, ACLs and special files by choice, and that choice is what makes the rest possible.
 
-If you need VM images on a shared LUN, the narrower contract is the point, not a compromise. It is the same bet VMFS made. The remaining question is maturity, and it is a fair one: today GFS2 is the conservative choice. cetrafs is in beta, though it has been validated on real hardware. Its multi-node suite (lock races, journal replay against a fenced peer, torn records, inode reuse) passes on a three-node cluster over a shared FC LUN, alongside fsck image tests, kernel regression suites, fuzzing and a crash-consistency rig. That is evidence from testing, not from time in the field. Trial it on storage you can afford to reformat before it holds anything you can't lose.
+If you need VM images on a shared LUN, the narrower contract is the point, not a compromise. It is the same bet VMFS made. GFS2 brings decades in the field; cetrafs brings a simpler model, more throughput on this workload, and a test effort built to find the bugs that only show up across nodes, after crashes and under randomized load. See [How cetrafs is tested](/docs/concepts/testing/), and [validate your storage](/docs/how-tos/validate-storage-stack/) before the first deployment.

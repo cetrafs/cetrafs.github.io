@@ -11,7 +11,7 @@ toc: true
 
 ## 1. Preview the geometry
 
-For a cluster, use the whole LUN or its multipath device, not a partition: since 0.9.4 a partition is single-node only, because compare-and-write addresses the whole disk.
+For a cluster, use the whole LUN or its multipath device, not a partition: a partition is single-node only, because compare-and-write addresses the whole disk.
 
 The device always comes **first**, before any options:
 
@@ -29,21 +29,22 @@ For a large LUN the defaults are right. Change one only for a reason:
 |---|---|---|
 | Fewer nodes than 64, to save a little space | `-M <nodes>` | 64 (also the maximum) |
 | More or fewer files | `-N <inodes>` | 1 per 4 MiB of device, capped at 65,536 |
-| More Zone Groups, so more nodes can write at once | `-z <count>` | 16 (max 255; clamped to the number of Block Groups) |
+| More Zone Groups | `-z <count>` | The larger of 16 and `-M` (max 255) |
 | A different Block Group size | `-b <MiB>` | 1024 (min 512; shrinks to 512 automatically on small devices) |
 | A different per-node journal size | `-J <MiB>` | 2 (shrinks automatically so all journals total about 5% of the device; `0` disables journaling) |
+| Data aligned to the array's allocation unit, so UNMAP can release whole units | `-A <KiB>` | 1024 (1 MiB). Can't be changed later. |
 
 {{< callout type="note" title="Zone Groups limit concurrent writers" >}}
-A Zone Group has one owner at a time, and only its owner allocates from it. **At most `-z` nodes can hold write capacity at the same time.** If more nodes than that mount, the extra ones mount fine but show `write_ready: no` until a Zone Group frees up. Make `-z` at least the number of nodes that will write.
+A Zone Group has one owner at a time, and only its owner allocates from it. **At most `-z` nodes can hold write capacity at the same time.** The default gives every possible node one, so this only matters if you set `-z` lower than `-M`; `mkfs.cetra` warns when you do.
 {{< /callout >}}
 
-The inode count is fixed at format time. Each inode takes a 4 KiB block on disk, which is why the default is modest: a VM datastore holds a few hundred large files, not millions of small ones.
+Each inode takes a 4 KiB block on disk, which is why the default count is modest: a VM datastore holds a few hundred large files, not millions of small ones. A [grow](/docs/how-tos/grow-volume/) adds inodes along with space, and `growfs.cetra -N` can add more.
 
 ## 3. Format
 
 ```sh
 sudo mkfs.cetra /dev/sdb               # with defaults
-sudo mkfs.cetra /dev/sdb -M 8 -z 32    # example: 8-node cluster, 32 Zone Groups
+sudo mkfs.cetra /dev/sdb -M 8         # example: an 8-node cluster
 echo $?
 ```
 

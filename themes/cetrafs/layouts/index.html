@@ -2,13 +2,13 @@
 <section class="hero">
   <div class="hero-inner">
     <div>
-      <p class="eyebrow"><a class="beta-badge" href="{{ "/docs/intro/status/" | relURL }}" title="cetrafs is young software: read the project status">Beta</a> cetrafs {{ .Site.Params.version }} &middot; Linux kernel module + tools</p>
+      <p class="eyebrow"><a class="release-badge" href="{{ "/docs/intro/status/" | relURL }}" title="Release {{ .Site.Params.version }}: read the project status">{{ .Site.Params.version }}</a> Linux kernel module + tools &middot; GPL / AGPL</p>
       <h1>Many hosts, one LUN.<br>One filesystem.</h1>
       <p class="lead">cetrafs is a clustered, shared-disk filesystem for Linux. Several hypervisors mount the same iSCSI or Fibre Channel LUN at once and keep their VM disk images directly on it, coordinating through the storage itself. It is an open alternative to VMFS.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary" href="{{ "/docs/tutorials/first-volume/" | relURL }}">Try it in 15 minutes</a>
         <a class="btn btn-outline" href="{{ "/docs/" | relURL }}">Read the docs</a>
-        <a class="btn btn-outline btn-status" href="{{ "/docs/intro/status/" | relURL }}"><span class="status-dot" aria-hidden="true"></span>Project status</a>
+        <a class="btn btn-outline" href="{{ "/docs/concepts/testing/" | relURL }}">How it is tested</a>
       </div>
     </div>
     <div class="hero-logo">{{ partial "brand-mark.html" (dict "size" 220) }}</div>
@@ -35,7 +35,7 @@
     <div class="feature-card">
       <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg></div>
       <h3>Checksummed end to end</h3>
-      <p>CRC32C on every on-disk structure, verified by the kernel on read, with a retry for torn reads. Per-inode generations catch inode-number reuse across nodes.</p>
+      <p>CRC32C on every on-disk structure and on every 512-byte sector of the allocation bitmaps, verified by the kernel on read. Damage found at runtime is contained to the file it touches.</p>
     </div>
     <div class="feature-card">
       <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="8" height="14" rx="1.5"/><rect x="14" y="5" width="8" height="14" rx="1.5"/><path d="M10 12h4M12 10l2 2-2 2"/></svg></div>
@@ -44,8 +44,8 @@
     </div>
     <div class="feature-card">
       <div class="f-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></div>
-      <h3>Self-healing upkeep</h3>
-      <p>Online defragmentation, a background scrubber that reclaims leaked blocks, and an <code>fsck.cetra</code> that repairs faults with one correct answer and refuses to guess at the rest.</p>
+      <h3>Online maintenance</h3>
+      <p>Grow a mounted volume, give freed space back to a thin LUN, defragment live images, and let a background scrubber reclaim leaked blocks. <code>fsck.cetra</code> can check a volume while it is in use.</p>
     </div>
   </div>
 </section>
@@ -56,7 +56,7 @@
   <div class="compare-strip">
     <div><div class="num">613&ndash;710</div><div class="lbl">MB/s O_DIRECT writes on a 3PAR LUN, about 2.3&times; GFS2 on the same LUN</div></div>
     <div><div class="num">64</div><div class="lbl">hosts per volume at most, each owning its own allocation regions</div></div>
-    <div><div class="num">16 TiB</div><div class="lbl">maximum size of a single file or VM image (depth-2 extent tree)</div></div>
+    <div><div class="num">1 EiB</div><div class="lbl">maximum size of a single file, with up to 65 million extents</div></div>
     <div><div class="num">0</div><div class="lbl">daemons, lock managers or cluster networks required in the data path</div></div>
   </div>
 </section>
@@ -93,11 +93,11 @@
 </section>
 
 <section class="home-cta">
-  <h2>Young software. Honest about it.</h2>
-  <p>cetrafs has been reviewed, fuzzed and crash-tested heavily, but it is beta software and has not had years of production use the way VMFS and ext4 have. Try it on storage you can afford to reformat, and keep independent backups.</p>
+  <h2>Tested harder than it is built</h2>
+  <p>Every change has to pass 837 regression suites and about 6,600 assertions, and five suites in six prove they fail without the fix they guard. Two-node scenarios run on real Fibre Channel and iSCSI storage, crash tests replay every write up to arbitrary cuts, and hostile images are fuzzed against <code>fsck</code> and the mount. There is more test code than filesystem code.</p>
   <div class="hero-ctas">
-    <a class="btn btn-primary" href="{{ "/docs/intro/status/" | relURL }}">Project status</a>
-    <a class="btn btn-outline" href="{{ "/docs/reference/limits/" | relURL }}">Known limits</a>
+    <a class="btn btn-primary" href="{{ "/docs/concepts/testing/" | relURL }}">How cetrafs is tested</a>
+    <a class="btn btn-outline" href="{{ "/docs/intro/status/" | relURL }}">Project status</a>
   </div>
 </section>
 {{ end }}

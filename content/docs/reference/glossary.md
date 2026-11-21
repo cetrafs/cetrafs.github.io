@@ -18,19 +18,22 @@ CAS
 : Compare-and-swap: the general operation that CAW provides on the storage. cetrafs uses "a CAS" to mean one claim made this way.
 
 Extent
-: A run of contiguous 4 KiB blocks belonging to one file, recorded as *(first logical block, length, first physical block)*. An extent never crosses a Block Group boundary and can cover up to 8 TiB. Extents allocated by `fallocate` but not yet written are flagged *uninitialized* and read back as zeros. A file's extents live in an ext4-style **extent tree**: up to 4 inline in the inode, then in external leaf and index blocks, at most depth 2. See [On-disk format](/docs/reference/on-disk-format/).
+: A run of contiguous 4 KiB blocks belonging to one file, recorded as *(first logical block, length, first physical block)*. An extent never crosses a Block Group boundary and can cover up to 8 TiB. Extents allocated by `fallocate` but not yet written are flagged *uninitialized* and read back as zeros. A file's extents live in an ext4-style **extent tree**: up to 4 inline in the inode, then in external leaf and index blocks, at most depth 3. See [On-disk format](/docs/reference/on-disk-format/).
 
 Fence epoch
 : A counter in each Node Registry row that serves as the node's lease. The node taking over a dead peer's resources increments it, and the peer fences itself when it sees the change.
 
 Fenced
-: The state of a mount whose lease was revoked. Every write fails with `EIO` until it is unmounted and mounted again.
+: The state of a mount whose lease was revoked. Every access fails with `EIO` until it is unmounted and mounted again. One cause of a [stopped mount](/docs/reference/mount-options/#what-a-stopped-mount-does).
 
 File lock
 : The whole-file, cross-node exclusive lock taken when a file is opened for writing (default mounts) or with `flock(2)` (under `nofilelock`). On a default mount, `flock(LOCK_UN)` can suspend it for one file: see *Lock suspension*.
 
 Heartbeat
 : Each node's periodic renewal of its Node Registry row (every 15 s by default).
+
+Incarnation
+: A random number a node draws each time it mounts, stored in its registry row and in every claim it makes. It tells a claim from this mount apart from one an earlier mount of the same machine left behind.
 
 Lead node
 : The first node to mount a volume while nobody else has it mounted. It sets the cluster-wide file-lock mode.
@@ -54,7 +57,7 @@ Pending-free queue
 : A per-Zone-Group queue where other nodes put frees of blocks in that Zone Group, for its owner to apply.
 
 Read presence
-: A 64-bit mask in each inode recording which nodes have the file open for reading.
+: A 64-bit mask in each inode recording which nodes have the file open.
 
 Replay guard
 : The check that stops journal replay from rolling back a block another node has rewritten since.
@@ -63,10 +66,13 @@ Scrubber
 : The background task that finds and reclaims leaked blocks (marked allocated, referenced by nothing).
 
 Stale / stale window
-: A node whose heartbeat has been silent for `stale_secs` (120 s by default) is stale, presumed dead, and its resources can be taken over.
+: A node whose heartbeat has been silent for `stale_secs` (120 s by default) is stale, presumed dead, and its resources can be taken over. A node that can't renew its own heartbeat stops one heartbeat before that, so it has stopped writing before anyone takes over.
 
 STONITH
 : *Shoot The Other Node In The Head.* Fencing a host by powering it off, done by a cluster manager. Required for production multi-node cetrafs, and not done by cetrafs itself.
 
+UNMAP
+: The SCSI command that tells a thin-provisioned LUN a range is no longer used, so the array can release it. Linux calls it *discard*; `fstrim` sends it for free space. See [Return free space to a thin LUN](/docs/how-tos/reclaim-thin-space/).
+
 Zone Group (ZG)
-: A set of Block Groups with at most one owner node. A node allocates only from the Block Groups of the Zone Groups it owns. Since 0.9 each Block Group records which Zone Group owns it, so membership changes over the volume's life.
+: A set of Block Groups with at most one owner node. A node allocates only from the Block Groups of the Zone Groups it owns. Each Block Group records which Zone Group owns it, so membership changes over the volume's life.

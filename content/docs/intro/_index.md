@@ -26,11 +26,11 @@ This works because the target workload is narrow:
 
 - **Shared-disk clustering** for up to 64 nodes on one LUN.
 - **Crash consistency** from a per-node write-ahead redo journal, replayed at mount and whenever a dead peer is reclaimed.
-- **End-to-end integrity**: CRC32C on every on-disk structure, verified by the kernel on read.
+- **End-to-end integrity**: CRC32C on every on-disk structure and every bitmap sector, verified by the kernel on read, and every address read off the disk range-checked before it is used.
 - **A real POSIX namespace**: directories, hardlinks, symlinks, and `user.*`, `trusted.*` and `security.*` extended attributes, with LSM labelling so SELinux-enforcing hosts work.
-- **Large sparse files** up to 16 TiB, with `SEEK_HOLE`/`SEEK_DATA` and `FIEMAP` so thin images stay thin.
-- **Live migration** support through the `nofilelock` mount option.
-- **Online maintenance**: in-place defragmentation, a background scrubber, and a conservative repairing `fsck`.
+- **Large sparse files** up to 1 EiB, with `SEEK_HOLE`/`SEEK_DATA` and `FIEMAP` so thin images stay thin, and UNMAP so freed space goes back to a thin LUN.
+- **Live migration**, either on a default mount with a per-file lock handover, or with the `nofilelock` mount option on Proxmox VE.
+- **Online maintenance**: grow a mounted volume, defragment live images, reclaim leaked blocks in the background, and check a volume while it is in use. `fsck.cetra` repairs what has one correct answer and refuses to guess at the rest.
 
 ## What it is not
 
@@ -42,7 +42,7 @@ This works because the target workload is narrow:
 
 | Requirement | Why |
 |---|---|
-| Linux kernel `7.0.14` or `7.1.8+deb13` (incl. Proxmox VE `7.0.14-*-pve`) with headers | The module is built against the running kernel. Other kernels are untested. |
+| Linux kernel `7.0.14`, `7.1.8+deb13` or `7.2.11` (incl. Proxmox VE `7.0.14-*-pve`) with headers | The module is built against the running kernel. DKMS builds it for 7.0 to 7.2. |
 | A shared block device visible to every node | That is the shared disk. |
 | For more than one node: SCSI **COMPARE AND WRITE** (ATS) support on the LUN | It is the only cross-node mutual-exclusion primitive. Without it a volume is single-node only, and mount enforces this. |
 | For production multi-node: a cluster manager with fencing | cetrafs's liveness check is a heartbeat timeout, so killing a hung host has to happen outside the filesystem. |
@@ -50,6 +50,6 @@ This works because the target workload is narrow:
 
 ## Next steps
 
-- Read [Project status](/docs/intro/status/) before you put any data on cetrafs.
+- Read [Project status](/docs/intro/status/) and [How cetrafs is tested](/docs/concepts/testing/).
 - Try it: [Your first cetrafs volume](/docs/tutorials/first-volume/).
 - Understand it: [Architecture overview](/docs/concepts/architecture/).

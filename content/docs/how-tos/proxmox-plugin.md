@@ -8,13 +8,13 @@ toc: true
 
 The [`pve-storage-cetrafs`]({{< param pluginRepoURL >}}) plugin adds a `cetrafs` storage type to Proxmox VE. Proxmox then mounts the volume on every node by itself, marks it as **shared**, and uses it for VM images, container volumes, ISOs, templates and backups. You don't write `/etc/fstab` entries or run `pvesm add dir`.
 
-The plugin always mounts with `nofilelock`, which [live migration](/docs/how-tos/live-migration/) needs. Proxmox's cluster layer keeps two nodes from running the same guest; nothing at the image level does, because Proxmox turns qemu's image locking off. See [why `nofilelock` exists](/docs/concepts/locking/#why-nofilelock-exists-proxmox-turns-image-locking-off).
+The plugin always mounts with `nofilelock`, which [live migration on Proxmox](/docs/how-tos/live-migration/) needs. Proxmox's cluster layer keeps two nodes from running the same guest; nothing at the image level does, because Proxmox turns qemu's image locking off. See [why `nofilelock` exists](/docs/how-tos/live-migration/#why-proxmox-needs-it-image-locking-is-turned-off).
 
 ## Before you start
 
 - cetrafs and the plugin are installed on **every** node, and optionally the [web UI package](#the-web-ui): see [Install on Proxmox VE](/docs/how-tos/install-proxmox/).
 - Every node sees the same LUN, and it [supports atomic CAW](/docs/how-tos/check-caw/). Without it, only one node can mount the volume.
-- If the LUN is multipathed, its queueing time is shorter than the stale window: see [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).
+- If the LUN is multipathed, its path timers fit inside the stale window: see [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).
 
 There are two ways to point the storage at the LUN:
 
@@ -129,7 +129,7 @@ systemctl reload pveproxy
 | `--base` | A LUN of a Proxmox `iscsi` storage, as `<storage>:<volume id>`. Fixed once set. |
 | `--cetrafs-device` | A stable block device path, the same on every node. Fixed once set. |
 | `--path` | The mount point, the same on every node. Defaults to `/mnt/pve/<storage id>` and is created if missing. Fixed once set. |
-| `--options` | Extra [mount options](/docs/reference/mount-options/). `nofilelock` is always added. |
+| `--options` | Extra [mount options](/docs/reference/mount-options/), for example `discard` to [return freed space to a thin LUN](/docs/how-tos/reclaim-thin-space/) as it is freed. `nofilelock` is always added. |
 | `--nodes` | Restrict the storage to some nodes. |
 | `--content` | What Proxmox may store there: `images`, `rootdir`, `iso`, `vztmpl`, `backup`. |
 | `--preallocation` | Set it to `off`: see [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/#turn-preallocation-off). |
@@ -158,7 +158,7 @@ journalctl -u pvestatd --since -10min | grep -i cetra
 |---|---|---|
 | `unsupported type 'cetrafs'` | The plugin isn't installed on that node. | Install `pve-storage-cetrafs` there. You don't need to re-add the storage. |
 | `device '...' not found on node '...'` | The node doesn't see the device: iSCSI logged in on one node only, LUN masking, or multipath not running. | Make the device visible on every node. For `/dev/mapper` paths, `systemctl enable --now multipathd`. |
-| `unable to load cetrafs kernel module` | The module isn't built for the running kernel. | Install the kernel headers, then check `dkms status cetrafs`. |
+| `unable to load cetrafs kernel module` | The module isn't built for the running kernel, which must be between 7.0 and 7.2. | Install the kernel headers, then check `dkms status cetrafs`. |
 | `mount error ...` | cetrafs refused the mount. | See `dmesg`. A second node is refused if the LUN has no atomic CAW, or if the nodes that already have it mounted run without `nofilelock`. |
 
 ## Remove a storage
@@ -175,6 +175,6 @@ Removing the storage doesn't touch the data on the LUN. Once no cetrafs storage 
 
 ## Related
 
-- [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/): raw, `cache=none`, `aio=threads`.
+- [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/): raw, `cache=none`, `aio=threads`, `discard=on`.
 - [Shared storage for Proxmox VE without Ceph](/docs/concepts/proxmox-shared-storage/).
 - The plugin's [README]({{< param pluginRepoURL >}}#readme) has more detail, including several LUNs on one target.

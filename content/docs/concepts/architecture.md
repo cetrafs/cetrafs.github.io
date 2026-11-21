@@ -53,8 +53,9 @@ What the nodes have to agree on is *who may change what*. cetrafs settles that t
 
 - **The kernel module** (`cetrafs.ko`) implements the filesystem: the namespace, file data, allocation, the cluster protocol, the journal, heartbeats and fencing, and the `/proc` interface.
 - **`mkfs.cetra`** computes the geometry from the device size and writes every structure.
-- **`fsck.cetra`** checks the volume offline in four passes and repairs only what has one correct answer.
-- **`defrag.cetra`** asks the module to relocate a file into one contiguous run, online.
+- **`fsck.cetra`** checks the volume in four passes, offline or while other nodes use it, and repairs only what has one correct answer.
+- **`growfs.cetra`** grows a volume into a larger device, live or offline.
+- **`defrag.cetra`** asks the module to move a file into contiguous runs, online.
 
 There is no daemon. The module does everything, and its only peer is the disk.
 
@@ -64,15 +65,17 @@ There is no daemon. The module does everything, and its only peer is the disk.
 +----------------------------+
 | Superblock                 |  block 0: every other region's offset is stored here
 +----------------------------+
+| Superblock copy            |  block 2048, 8 MiB in, out of reach of a stray write
++----------------------------+
 | Zone Group table           |  one block per Zone Group: owner node, free count
 +----------------------------+
 | Block Group table          |  one block per Block Group
 +----------------------------+
-| Global inode bitmap        |
+| Inode bitmap               |
 +----------------------------+
-| Global inode table         |  one inode record per 4 KiB block
+| Inode table                |  one inode record per 4 KiB block; grows with the volume
 +----------------------------+
-| Node Registry              |  one 128-byte row per node, keyed by machine UUID
+| Node Registry              |  one 144-byte row per node, keyed by machine UUID
 +----------------------------+
 | Pending-free queues        |  one per Zone Group: frees handed to the owner
 +----------------------------+
@@ -88,11 +91,11 @@ Nothing is found by position alone. Every region's offset is a superblock field,
 
 The array performs compare-and-write atomically on one logical block, 512 bytes on a typical SAN LUN. cetrafs lays out its records to fit:
 
-- Every record that nodes compete for (a Zone Group's owner, a registry row, an inode's lock fields) sits entirely in the **first 512 bytes of its own block**.
+- Every record that nodes compete for (a Zone Group's owner, a registry row, an inode's lock fields, a bitmap sector) sits entirely in **one 512-byte sector**, with its own checksum.
 - **One inode per 4 KiB block**, even though an inode record is only about 200 bytes. With records packed together, one node's write could overwrite a neighbouring record another node had just changed. One record per block makes that impossible by construction.
 - Blocks are a fixed **4 KiB**. A 512-byte block size was evaluated and rejected: it would mean roughly eight times as many metadata round trips and one directory entry per block.
 
-On a **4Kn** target, whose logical block is 4 KiB, the atomic unit is the whole block. The records still sit in the first 512 bytes, so the same layout works unchanged: a compare-and-write covers the whole block. Since 0.9.1 every path handles that case. Before it, flushing or closing a file on such a device failed with `EINVAL`.
+On a **4Kn** target, whose logical block is 4 KiB, the atomic unit is the whole block, and the same layout works unchanged: a compare-and-write covers the whole block.
 
 ## Three problems, three mechanisms
 

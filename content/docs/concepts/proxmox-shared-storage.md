@@ -18,7 +18,7 @@ This page compares the ways to put Proxmox VM disks on an **existing iSCSI or Fi
 | Disks are | Logical volumes | Files | zvols | Files | Files |
 | Thin provisioning | No | Yes | Yes | Yes | Yes |
 | Coordination | Proxmox locks LVM metadata changes | The NFS server | The target | DLM over the network (corosync) | SCSI COMPARE AND WRITE on the LUN |
-| Supported by Proxmox | Yes | Yes | Yes | No, community setups | No, out-of-tree module (beta) |
+| Supported by Proxmox | Yes | Yes | Yes | No, community setups | No: out-of-tree module, with its own storage plugin |
 
 ## Shared LVM on a LUN
 
@@ -48,13 +48,14 @@ cetrafs takes the same file-based approach as GFS2 and OCFS2, but it is built on
 
 In Proxmox, a cetrafs volume is a **shared, file-based storage**. The [storage plugin](/docs/how-tos/proxmox-plugin/) adds a `cetrafs` storage type that Proxmox mounts on every node by itself, over a Proxmox iSCSI storage or on any block device. You get:
 
-- **Thin raw images** on the SAN, without a file server.
+- **Thin raw images** on the SAN, without a file server, and freed space returned to a thin LUN with UNMAP.
 - **Live migration**, with the `nofilelock` mount option.
 - A per-node journal, so a crashed node's interrupted metadata changes are finished by a survivor before it takes over.
+- A volume that grows while VMs run on it.
 
 The trade-offs:
 
-- **It is beta software** and out of tree. It runs on specific kernels, including Proxmox VE's `7.0.14-*-pve`. See [Project status](/docs/intro/status/).
+- **It is out of tree.** It runs on specific kernels, including Proxmox VE's `7.0.14-*-pve`, and DKMS rebuilds it for each kernel. See [Project status](/docs/intro/status/).
 - **The LUN must support COMPARE AND WRITE** for more than one node to mount it. Arrays that support VMware VAAI generally do; [check yours](/docs/how-tos/check-caw/) first.
 - **You still need fencing.** cetrafs fences itself when its lease is revoked, but it cannot power off a hung host. Proxmox HA has to do that. See [Fencing and split-brain](/docs/concepts/fencing/).
 - **Raw is the recommended format.** qcow2 works and gives Proxmox snapshots, but it fragments badly on cetrafs. See [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/).

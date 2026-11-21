@@ -61,6 +61,12 @@ If `insmod` fails with an unknown `crc32c` symbol, your kernel has CRC32C as a m
 
 With Secure Boot enabled, an unsigned module is refused with `Key was rejected by service` or `Required key not available`. [Sign it](/docs/how-tos/secure-boot/#modules-you-build-yourself) after every build.
 
+A module built this way is a developer build: its test-only parameters can be set, and `properties` shows `test_params: settable`. The DKMS and Debian packages build with `CETRAFS_RELEASE=1`, which locks them. For production, build the same way:
+
+```sh
+make mod CETRAFS_RELEASE=1
+```
+
 ## After a kernel upgrade
 
 A module built for one kernel won't load on another. Rebuild and reinstall after every kernel upgrade, or use [DKMS](/docs/how-tos/install-dkms/) so it happens automatically.
@@ -71,4 +77,4 @@ A module built for one kernel won't load on another. Rebuild and reinstall after
 sudo make check
 ```
 
-This runs the loop-device test suite. It never touches a real device. See [Run the test suites](/docs/how-tos/run-tests/).
+This runs the loop-device test suite, which takes about 8 hours on one machine. It never touches a real device. See [Run the test suites](/docs/how-tos/run-tests/).

@@ -19,7 +19,7 @@ As a read-only **observer**, to inspect a live volume from another host without 
 sudo mount -t cetrafs -o ro /dev/sdb /mnt/cetra
 ```
 
-For a Proxmox/qemu cluster that live-migrates VMs, add `nofilelock`. See [Enable live migration](/docs/how-tos/live-migration/).
+For a Proxmox/qemu cluster that live-migrates VMs, add `nofilelock`. See [Enable live migration](/docs/how-tos/live-migration/). To return freed space to a thin LUN as it is freed, add `discard`; see [Return free space to a thin LUN](/docs/how-tos/reclaim-thin-space/).
 
 ## Mount at boot with `/etc/fstab`
 
@@ -78,7 +78,8 @@ Read-only and read-write participation, and the file-lock mode, are fixed at mou
 | Error | Meaning |
 |---|---|
 | `EBUSY` | The device has no atomic CAW and another node already has it mounted. Mount it on one node only. |
-| `EINVAL` with a version or feature message in `dmesg` | The volume was made by a different format version. Reformat it; there is no migration. |
+| `EINVAL` with a version or feature message in `dmesg` | The volume was made by a different format version, such as a 0.9.x volume on 0.10. [Reformat it](/docs/how-tos/upgrade-reformat/); there is no migration. |
+| Refused, block 0 doesn't verify | Something overwrote the superblock. [Restore it from its copy](/docs/how-tos/recover-node-failure/#the-mount-says-block-0-doesnt-verify). |
 | `EINVAL` with a file-lock mode message in `dmesg` | You asked for a file-lock mode that conflicts with the one the cluster already uses. Use the same options as the other nodes. |
 
 The [troubleshooting reference](/docs/reference/troubleshooting/) has more.

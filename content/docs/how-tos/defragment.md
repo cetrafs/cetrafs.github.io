@@ -1,7 +1,7 @@
 ---
 weight: 365
 title: "Defragment a file"
-description: "Relocate a fragmented file into one contiguous run while the filesystem is live, by hand with defrag.cetra or automatically in the background."
+description: "Move a fragmented file into contiguous runs while the filesystem is live, by hand with defrag.cetra or automatically in the background."
 toc: true
 ---
 
@@ -11,7 +11,7 @@ toc: true
 sudo filefrag /mnt/cetra/images/100/vm-100-disk-0.raw
 ```
 
-A raw image written sequentially has a handful of extents. Thousands of extents (common with qcow2) slow down every block lookup.
+A raw image written sequentially has a handful of extents. Thousands of extents, common with qcow2, slow down lookups and fill the file's extent tree.
 
 ## Defragment one file by hand
 
@@ -20,17 +20,21 @@ sudo defrag.cetra /mnt/cetra/images/100/vm-100-disk-0.raw
 echo $?       # 0 done, 1 failed, 2 usage
 ```
 
-The file can be open and in use while this runs. `defrag.cetra` opens the file for writing on purpose: on a default mount, that write-open takes the cross-node exclusive lock, which is what makes moving the blocks safe.
+The file can be open and in use while this runs, and it can be sparse or preallocated: holes stay holes, and preallocated ranges stay preallocated. Blocks move in steps of at most 512 KiB, so a running VM never waits long for one.
 
 `defrag.cetra` explains when it won't run:
 
 | Refusal | Why |
 |---|---|
-| Sparse file | Files with interior holes are skipped. |
-| Disabled | The mount has `defrag=off` in `controls`, or is mounted `nofilelock` (where the defragmenter is always off, because its safety depends on the lock). |
-| Foreign lock | Another node has the file open. Since 0.9.3 that includes opens for reading: before, defrag could move a file that another node was still reading, and free blocks that reader was reading through. |
-| `Device or resource busy` | This node has [suspended the file's lock](/docs/concepts/locking/#handing-one-files-lock-over-on-a-default-mount) for a handoff, so the lock isn't there to protect the move. |
-| Not a cetrafs mount | The path isn't on cetrafs. |
+| `held open for write by another node` | Another node has the file open. The move needs the file to itself, cluster-wide. |
+| `defragmentation not supported here` | The mount has `defrag=off` in `controls`. |
+| `not on a cetrafs mount` | The path isn't on cetrafs. |
+
+A first open of the file on this node, or another node asking for it, stops the pass at its next step, and the file is valid at every step. Run it again later.
+
+## On `nofilelock` clusters
+
+The defragmenter works on `nofilelock` mounts too, for a file no other node has open: on Proxmox, the images of VMs running on this node. During a live migration, when both nodes have the image open, it stays away.
 
 ## Let it run in the background
 
@@ -44,6 +48,6 @@ echo auto_defrag=on  | sudo tee /proc/fs/cetrafs/<dev>/controls
 echo auto_defrag=off | sudo tee /proc/fs/cetrafs/<dev>/controls
 ```
 
-## On `nofilelock` clusters
+## Prevent fragmentation
 
-The defragmenter is **unavailable** under `nofilelock`. Prevent fragmentation instead: use raw images with preallocation off, and if you need qcow2, give it 1 MiB clusters. See [Configure VM disks](/docs/how-tos/configure-vm-disks/).
+Defragmenting fixes the layout after the fact. Raw images with preallocation off stay compact from the start, and if you need qcow2, give it 1 MiB clusters. See [Configure VM disks](/docs/how-tos/configure-vm-disks/).

@@ -1,40 +1,45 @@
 ---
 weight: 360
 title: "Check and repair a volume"
-description: "Run fsck.cetra offline, understand what it will and won't repair, and act on its exit codes."
+description: "Check a cetrafs volume while it is in use with fsck.cetra --live, repair it offline with -r, understand what it will and won't repair, and act on its exit codes."
 toc: true
 ---
 
-## 1. Unmount everywhere
+## When to check
 
-`fsck.cetra` refuses to run on a volume that is mounted locally or that has a live row in the Node Registry. Unmount it on **every** node:
+- **`fsck_needed` in `info` isn't `no`, or `corruptions` is above 0.** A node found damaged metadata.
+- **`bmap_crc_bad` is above 0.** A bitmap sector is damaged.
+- **`sb_copy` reads `stale` or `bad`, or a mount says block 0 doesn't verify.**
+- **Before and after maintenance**, such as an offline grow, if you want the confirmation.
+
+An unclean shutdown is **not** a reason on its own: mounting again repairs what it left. See [Journaling and crash consistency](/docs/concepts/journaling/#per-fsync-not-per-syscall).
+
+## 1. Check while the volume is in use
+
+```sh
+sudo fsck.cetra --live /dev/sdb
+echo $?
+```
+
+`--live` reads the volume while other nodes keep working on it, claims nothing and writes nothing. Run it on any node that sees the LUN. Because the volume changes under it, it walks up to three times and only reports a problem that every walk sees the same way:
+
+| Exit | Meaning |
+|---|---|
+| `0` | Clean |
+| `1` | Problems that repeat on every walk: real damage. Plan an offline repair. |
+| `3` | The volume changed too fast to reach a verdict. Run it again when it is quieter. |
+
+## 2. Unmount everywhere
+
+A repair needs the volume offline. Unmount it on **every** node:
 
 ```sh
 sudo umount /mnt/cetra          # on every node
 ```
 
-A node that crashed doesn't block `fsck`: its row stops heartbeating. To tell, `fsck.cetra` watches every row a node hasn't left cleanly before it starts, and a row whose heartbeat doesn't move counts as gone. Since 0.9.4 that watch lasts up to 240 s, the longest stale window a node may be set to.
+With the [Proxmox storage plugin](/docs/how-tos/proxmox-plugin/), disable the storage first (`pvesm set <storage> --disable 1`), or `pvestatd` mounts it again within seconds.
 
-## 2. Check (read-only)
-
-```sh
-sudo fsck.cetra /dev/sdb
-echo $?
-```
-
-`fsck` runs four passes and changes nothing:
-
-1. **Structural**: checksums, the superblock's region map, Zone Group and Block Group layout and ownership, Node Registry rows.
-2. **Cluster metadata**: per-node journals, pending-free queues.
-3. **Content**: extent trees against the bitmaps in both directions, cross-file block overlap, leaks.
-4. **Namespace**: directory entries, `.` and `..`, link counts, reachability from the root.
-
-| Exit | Meaning |
-|---|---|
-| `0` | Clean |
-| `1` | Problems found |
-| `2` | Bad invocation |
-| `3` | Couldn't examine the device (inaccessible, or still mounted somewhere) |
+`fsck.cetra` refuses to run while the volume is mounted on this machine, or while a node is still heartbeating in its Node Registry. A node that crashed doesn't block it: its row stops moving, which `fsck.cetra` watches for, for up to the longest stale window any node uses (at most 240 s).
 
 ## 3. Repair
 
@@ -42,12 +47,14 @@ echo $?
 sudo fsck.cetra -r /dev/sdb
 ```
 
-`-r` repairs **only faults with one correct answer**:
+`fsck` runs four passes (structural, cluster metadata, content, namespace), then `-r` repairs **only faults with one correct answer**:
 
-- a bitmap bit that disagrees with the extent trees (a leaked block, or one that could be allocated twice);
-- a cached free count on a Block Group or Zone Group that disagrees with its bitmap;
-- an inode's link count that disagrees with the directory entries that name it;
-- orphaned inodes: those with `nlink=0` are freed, and those with `nlink>0` (a lost directory entry for data that is still wanted) are linked into `/lost+found` as `#<ino>`.
+- a bitmap bit, or a whole bitmap sector, that disagrees with the extent trees;
+- a cached free count that disagrees with its bitmap;
+- an inode's link count, or a directory's size, that disagrees with the entries;
+- a damaged Zone Group record, Block Group descriptor or Node Registry row, rebuilt from the rest of the volume;
+- block 0, restored from its copy at block 2048, or the copy, rewritten;
+- orphaned inodes: those with `nlink=0` are freed, and those with `nlink>0` are linked into `/lost+found` as `#<ino>`.
 
 It **refuses**, reporting the fault and changing nothing, when there is no single correct answer:
 
@@ -55,16 +62,23 @@ It **refuses**, reporting the fault and changing nothing, when there is no singl
 - **an unreadable inode record or extent header**: clearing it could hand a live file's blocks to someone else;
 - **a dangling directory entry**: removing it destroys a name.
 
-These need a human decision. A wrong guess would turn a contained fault into lost data.
+These need a human decision. A wrong guess would turn a contained fault into lost data. Keep an image of the volume and [report it](https://github.com/cetrafs/cetrafs/issues).
 
-If `-r` reports that it reclaimed blocks, **run it once more**. Some reclamation only shows up on the next pass.
+If `-r` reports that it reclaimed blocks, **run it once more**. Some reclamation only shows up on the next pass. A clean pass clears the `fsck_needed` mark.
 
-## What's normal after a crash
+If `-r` says a journal hasn't been replayed, mount the volume once, unmount it, and run `-r` again: the mount completes those writes first.
 
-After an unclean shutdown, expect `-r` to find and fix a little residue: an orphan inode, or a counter that has drifted. cetrafs's crash guarantee is **per `fsync`, not per syscall**. Data an application had flushed is never lost, but an operation that hadn't been acknowledged when the node crashed can leave a small, repairable remnant. That isn't corruption. See [Journaling and crash consistency](/docs/concepts/journaling/).
+## Exit codes
 
-A few **leaked blocks** are also expected after a node crash. See [Recover from a node failure](/docs/how-tos/recover-node-failure/#expect-a-small-leak-and-let-it-go-away).
+| Exit | Meaning |
+|---|---|
+| `0` | Clean |
+| `1` | Problems found |
+| `2` | Bad invocation |
+| `3` | Couldn't examine the device: inaccessible, still mounted somewhere, or a repair already running |
 
 ## Keep the tools in step with the module
 
-Run an `fsck.cetra` from the **same build** as the kernel module that wrote the volume. A mismatched `fsck` can misread the format and report corruption that isn't there.
+Run an `fsck.cetra` from the **same release** as the kernel module. A tool of another format version refuses the volume.
+
+See the [`fsck.cetra` reference](/docs/reference/fsck/) for every check and repair.

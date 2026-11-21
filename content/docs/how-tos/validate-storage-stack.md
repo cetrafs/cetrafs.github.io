@@ -5,20 +5,18 @@ description: "Prove each layer, from the raw LUN up to live-migrating VMs, befor
 toc: true
 ---
 
-When a guest filesystem gets corrupted, the cause could be the array, the fabric, a hypervisor presenting the LUN, cetrafs, qemu or the guest. The way to keep that answerable is to **prove each layer clean before testing the one above it**. A mature layer that corrupts data on its own is not a cetrafs bug.
+Before the first deployment, check what cetrafs can't check for itself: that your array and the way it is presented to the hosts behave as cetrafs assumes. And if a guest filesystem ever gets corrupted, the cause could be the array, the fabric, a hypervisor presenting the LUN, cetrafs, qemu or the guest. The way to keep that answerable is to **prove each layer clean before testing the one above it**.
 
 | Layer | What | Trust |
 |---|---|---|
 | L0 | SAN array, fabric, HBA | Mature |
 | L1 | How the LUN is presented to the hosts (direct, RDM, passthrough) | Mature code; **the configuration is the risk** |
-| L2 | cetrafs, single node | Under test |
-| L3 | cetrafs, whole cluster | Under test |
+| L2 | cetrafs, single node | Tested before every release; check it on your storage |
+| L3 | cetrafs, whole cluster | Tested before every release; check it on your storage |
 | L4 | Proxmox/qemu with VM images on cetrafs | Mature |
 | L5 | Guest OS and application | |
 
-Keep independent backups until the top layer has soaked clean.
-
-This is about **your** deployment. The automated suites that gate every cetrafs change are described in [How cetrafs is tested](/docs/concepts/testing/). L2 and L3 below assume those are green: a build that fails its own automated gate isn't ready to be deployed and checked by hand.
+This is about **your** deployment. The automated suites that gate every cetrafs release are described in [How cetrafs is tested](/docs/concepts/testing/). L0 and L1 matter most: they check the two properties of your SAN that cetrafs depends on and can't verify itself.
 
 ## L0: the raw LUN
 
@@ -31,7 +29,7 @@ fio --name=v --filename=/dev/sdX --rw=randrw --bs=4k --iodepth=32 --size=20G \
 
 Then test power-loss durability: run a `diskchecker.pl`-style client writing with `fsync`, cut power, reboot, verify.
 
-**Pass:** zero verify errors and zero loss of `fsync`ed data. If this fails, stop. The array cache doesn't honour flushes, and nothing built on top of it can be sound.
+**Pass:** zero verify errors and zero loss of `fsync`ed data. If this fails, stop. The array cache doesn't honour flushes, and nothing built on top of it can be sound. cetrafs orders every metadata write with cache flushes, so this is the property it relies on most.
 
 ## L1: shared presentation
 
@@ -59,20 +57,21 @@ Mount on one host only.
 
 - `fio --verify=crc32c --fsync=16 --runtime=6h` on a file on cetrafs.
 - `fsstress` inside a guest filesystem image stored on cetrafs.
-- Power loss: run a `diskchecker.pl`-style client against a cetrafs file, then `echo b > /proc/sysrq-trigger`, remount, `fsck.cetra -r`, verify.
+- Power loss: run a `diskchecker.pl`-style client against a cetrafs file, then `echo b > /proc/sysrq-trigger`, remount, verify, and run `fsck.cetra` offline.
 - The content oracle, `tests/kernel/churn_oracle.sh` from the source tree, with several seeds (`CHURN_SEED`) and more rounds (`CHURN_ROUNDS`). It builds its volume as a loop image in `CT_IMG_DIR`; point that at a directory on the storage under test. It is the only check here that compares every block read back with what was written, from the cache, after dropping it, and after a remount.
 - After every run: `fsck.cetra <dev>` must be clean.
 
-**Pass:** no verify errors, no loss of `fsync`ed data, fsck clean (after `-r` following a crash; residue from operations that weren't acknowledged is expected), and the content oracle clean across seeds.
+**Pass:** no verify errors, no loss of `fsync`ed data, `fsck` clean once the volume has been mounted again after the crash (leaked blocks the scrubber hasn't reclaimed yet are expected), and the content oracle clean across seeds.
 
 ## L3: the cluster
 
 Mount on every node.
 
 - Run `fio --verify=crc32c` on all nodes at once, each on its own files.
-- Power off one node in the middle of a write. The survivors must stay clean, the dead row must be reclaimed, and `fsck.cetra -r` must come back clean.
+- Power off one node in the middle of a write. The survivors must stay clean, the dead row must be reclaimed, and `fsck.cetra --live` must come back clean.
+- Pull every path on one node for longer than the stale window. It must stop itself (`stopped: lease`), and its peers must take over its files only after that.
 - Fill the volume to about 100% and keep writing. You should get a clean `ENOSPC` and no corruption.
-- On every node, watch `dmesg | grep -i cetrafs` (any `EUCLEAN`, `leaking`, `WARNING` or `BUG` is a finding) and `/proc/fs/cetrafs/<dev>/info`: `cas_miscompares` must rise under contention, and `free_data_blocks` must not drift.
+- On every node, watch `dmesg | grep -i cetrafs` (any `EUCLEAN`, `WARNING` or `BUG` is a finding) and `/proc/fs/cetrafs/<dev>/info`: `cas_miscompares` must rise under contention, `free_data_blocks` must not drift, and `fsck_needed` must stay `no`.
 
 The multi-node test suite (`ctest/`) belongs at this layer. See [Run the test suites](/docs/how-tos/run-tests/).
 
@@ -87,10 +86,11 @@ The multi-node test suite (`ctest/`) belongs at this layer. See [Run the test su
 
 ## L5: full stack with HA
 
-Run everything above at once, as a soak lasting several weeks, with Proxmox HA fencing enabled.
+Run everything above at once, as a soak, with Proxmox HA fencing enabled.
 
 - Kill a node that is running VMs. HA must restart them on survivors, and their images must be intact.
 - Cut a node off the network. HA must fence it, and it must not keep writing.
+- If your HA agent declares fenced hosts dead to cetrafs, check that the VMs restart without waiting for the stale window.
 
 ## Bisecting a symptom
 
@@ -106,6 +106,6 @@ Run everything above at once, as a soak lasting several weeks, with Proxmox HA f
 
 ## fsck clean is not the same as data correct
 
-A filesystem can be perfectly **consistent** and still return the wrong bytes. In 0.8.x, hole-punching part of a preallocated range dropped its "never written" mark, so blocks that had never been written began returning a deleted file's contents. Throughout, `fsck.cetra` reported the volume clean: one owner per block, every count matching the bitmaps, no overlap, no leak. There was nothing inconsistent to find. It was fixed in 0.9.
+A filesystem can be perfectly **consistent** and still return the wrong bytes. In 0.8.x, hole-punching part of a preallocated range dropped its "never written" mark, so blocks that had never been written began returning a deleted file's contents. Throughout, `fsck.cetra` reported the volume clean: one owner per block, every count matching the bitmaps, no overlap, no leak. There was nothing inconsistent to find.
 
 So at every layer, `fsck` clean is necessary and never enough. Only a check that knows what the bytes were supposed to be can catch this kind of fault, such as `fio --verify` or the content oracle at L2, and at least one of them has to pass before a layer counts as clean.

@@ -53,13 +53,13 @@ sudo mkfs.cetra /dev/sdb
 # node A
 sudo mkdir -p /mnt/cetra
 sudo mount -t cetrafs /dev/sdb /mnt/cetra
-cat /proc/fs/cetrafs/sdb/cluster
+sudo cat /proc/fs/cetrafs/sdb/cluster
 ```
 
 There is one row, marked `(this node)`:
 
 ```text
-node 0: state=REGISTERED uuid=... hb_seq=1 last_seen=... label=node-a stale=no (this node)
+node 0: state=REGISTERED uuid=... hb_seq=1 last_seen=... label=node-a caps=0x1 stale_secs=120 departure=none stale=no incarnation=... (this node)
 ```
 
 The procfs directory is named after the kernel's device name (`sdb`). For a multipath device it is the `dm-N` name; `ls /proc/fs/cetrafs/` will show it.
@@ -70,7 +70,7 @@ The procfs directory is named after the kernel's device name (`sdb`). For a mult
 # node B
 sudo mkdir -p /mnt/cetra
 sudo mount -t cetrafs /dev/sdb /mnt/cetra
-cat /proc/fs/cetrafs/sdb/cluster
+sudo cat /proc/fs/cetrafs/sdb/cluster
 ```
 
 Now there are **two** rows. Node B registered itself in the next free row of the Node Registry, using a compare-and-write on the LUN. No network message passed between the hosts.
@@ -82,7 +82,7 @@ Run the same `cat` on node A a few times. Node B's `hb_seq` increases every 15 s
 On either node:
 
 ```sh
-grep ' zg ' /proc/fs/cetrafs/sdb/info
+sudo grep ' zg ' /proc/fs/cetrafs/sdb/info
 ```
 
 Each line is one Zone Group, with its `owner`. Node A owns one and node B owns a different one. Each node allocates new blocks only from the Zone Groups it owns, so the two hosts never compete for the same free space. A node claims another Zone Group only when the ones it has are full.
@@ -145,7 +145,7 @@ Live VM migration needs the image open on *both* hosts for a moment, which this 
 
 ```sh
 # either node
-grep -E 'cas_ops|cas_miscompares' /proc/fs/cetrafs/sdb/info
+sudo grep -E 'cas_ops|cas_miscompares' /proc/fs/cetrafs/sdb/info
 ```
 
 `cas_miscompares` counts compare-and-writes that the array rejected because the other node had changed the record first. Each one was retried with fresh data. A number above zero after the steps above shows that the two hosts really did contend, and that the array resolved it.
@@ -174,7 +174,7 @@ The lock is still held by node B's row, and node A cannot yet tell whether node 
 
 ```sh
 # node A
-watch -n 5 cat /proc/fs/cetrafs/sdb/cluster
+sudo watch -n 5 cat /proc/fs/cetrafs/sdb/cluster
 ```
 
 Node B's `hb_seq` stops increasing. After the **stale window** (120 seconds by default) its row shows `stale=yes`. From then on, node A is allowed to reclaim what node B held. It replays node B's journal first, to finish any metadata write node B was in the middle of, then takes over node B's locks and Zone Groups as it needs them.
@@ -191,11 +191,11 @@ When node B comes back up, mount it again. It re-attaches to its old registry ro
 ```sh
 # node B
 sudo mount -t cetrafs /dev/sdb /mnt/cetra
-cat /proc/fs/cetrafs/sdb/cluster
+sudo cat /proc/fs/cetrafs/sdb/cluster
 ```
 
 {{< callout type="warning" title="Why production needs fencing" >}}
-Node A waited 120 seconds because, from the shared disk alone, a dead host and a host that is only frozen look the same. If node B had come back to life after being declared dead, it would have found its lease revoked and **fenced itself**: every write fails with `EIO` until it remounts. Writes it already had in flight could still reach the disk, though. That is why a production cluster also needs a manager that can power off a host. See [Fencing and split-brain](/docs/concepts/fencing/).
+Node A waited 120 seconds because, from the shared disk alone, a dead host and a host that is only frozen look the same. Had node B only been frozen, it would have **stopped itself** at 105 seconds, unable to renew its heartbeat, before node A could take anything over: every access fails with `EIO` until it remounts. Writes it had already handed to the array could still land, though. That is why a production cluster also needs a manager that can power off a host. Once it has, it can [declare the host dead](/docs/how-tos/recover-node-failure/#declare-a-fenced-host-dead) and skip the wait. See [Fencing and split-brain](/docs/concepts/fencing/).
 {{< /callout >}}
 
 ## 10. Check the volume
@@ -212,7 +212,9 @@ sudo umount /mnt/cetra
 sudo fsck.cetra /dev/sdb
 ```
 
-After a crash, `fsck` may report a few blocks as *leaked*. These are blocks node B had reserved ahead of need and never got to hand back. They are harmless: the background scrubber reclaims them, or you can reclaim them at once with `fsck.cetra -r`. See [Check and repair a volume](/docs/how-tos/check-and-repair/).
+After a crash, `fsck` may report a few blocks as *leaked*. These are blocks node B had reserved ahead of need and never got to hand back. They are harmless: the background scrubber reclaims them, or you can reclaim them at once with `fsck.cetra -r`. Nothing else needs repairing: node A's replay and node B's remount finished what the crash interrupted.
+
+You can also check without unmounting: `sudo fsck.cetra --live /dev/sdb` reads the volume while both nodes use it. See [Check and repair a volume](/docs/how-tos/check-and-repair/).
 
 ## What you learned
 

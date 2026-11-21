@@ -1,28 +1,31 @@
 ---
 weight: 350
 title: "Monitor a volume"
-description: "What to watch on a live cetrafs cluster: free space, node liveness, write readiness, contention, journal replays and the kernel log."
+description: "What to watch on a live cetrafs cluster: free space per node, node liveness, damage marks, contention, journal replays, discard and the kernel log."
 toc: true
 ---
 
-Each mounted volume publishes its live state under `/proc/fs/cetrafs/<dev>/`, where `<dev>` is the kernel's name for the device (`sdb`, `dm-3`...). Reading these files is cheap and safe on a live mount. Every field is described in the [procfs reference](/docs/reference/procfs/).
+Each mounted volume publishes its live state under `/proc/fs/cetrafs/<dev>/`, where `<dev>` is the kernel's name for the device (`sdb`, `dm-3`...). Reading these files is safe on a live mount; `info` and `cluster` read the device and are root-only. Every field is described in the [procfs reference](/docs/reference/procfs/).
 
 ## Quick health check
 
 ```sh
 D=/proc/fs/cetrafs/$(ls /proc/fs/cetrafs | head -1)
-cat $D/cluster
-grep -E '^(write_ready|fenced|file_lock|free_data_blocks|free_inodes|cas_miscompares|journal_replay_refused|scrub_reclaimed)' $D/info
+sudo cat $D/cluster
+sudo grep -E '^(write_ready|fenced|stopped|fsck_needed|sb_copy|file_lock|free_data_blocks|free_inodes|cas_miscompares|journal_replay_refused|scrub_reclaimed|bmap_crc_bad|discard_pending_bgs|space_waits)' $D/info
 ```
 
 ## What to watch
 
 | Signal | Where | Healthy | Investigate when |
 |---|---|---|---|
-| Free space | `info`: `free_data_blocks`, `free_inodes` (or `df`) | Steady consumption | Approaching zero. Inodes are fixed at mkfs time. |
+| Free space, per node | `info`: `free_data_blocks_owned` + `free_data_blocks_unowned_bgs`, `free_inodes`; or `df` on each node | Steady consumption | Approaching zero on any node. A node can run out while the volume has room; see [Limits](/docs/reference/limits/#operational-characteristics). Grow the volume, with `-N` for inodes. |
 | Node liveness | `cluster`: `stale=` per row | All `no` | A row shows `stale=yes` (that peer has crashed or stalled) or keeps showing it for a long time. |
 | Stopped | `info`: `fenced`, `stopped` | `no`, `none` | `fenced: yes`: the mount has stopped and every access fails with `EIO`; `stopped` says why. See [Recover from a node failure](/docs/how-tos/recover-node-failure/#a-mount-where-everything-fails-with-eio). |
-| Damaged metadata | `info`: `corruptions` | `0` | Above `0`: writes to the damaged file fail with `EUCLEAN`, and the volume needs `fsck.cetra`. |
+| Damaged metadata | `info`: `corruptions`, `fsck_needed`, `bmap_crc_bad` | `0`, `no`, `0` | Anything else: writes to the damaged file fail with `EUCLEAN`. Run `fsck.cetra --live`, then [repair offline](/docs/how-tos/check-and-repair/). |
+| Superblock copy | `info`: `sb_copy` | `ok` | `stale` or `bad`: run `fsck.cetra -r` at the next window to rewrite it. |
+| Array out of space | `info`: `space_waits`; `dmesg` | `0` | Rising: the thin pool is full and writes are waiting. Give it space. |
+| Discard | `info`: `discard_pending_bgs`, `discard_errors` | `0` | `discard_pending_bgs` staying above 0. See [Reclaim thin space](/docs/how-tos/reclaim-thin-space/#a-block-group-stuck-waiting-for-its-unmap). |
 | Journal | `info`: `journal_slots_stuck` | `0` | Nonzero: the device refused writes. |
 | Write readiness | `info`: `write_ready` | `yes` on nodes that write | Persistently `no`: every Zone Group is owned by another node. Too few Zone Groups for the number of writers. |
 | Contention | `info`: `cas_miscompares` | Rising slowly while several nodes work | Stuck at `0` while two nodes are both busy: they may not really share the device (check the storage path). |
@@ -33,7 +36,7 @@ grep -E '^(write_ready|fenced|file_lock|free_data_blocks|free_inodes|cas_miscomp
 
 ## Free space as Proxmox sees it
 
-`statfs` (so `df`, and Proxmox's `pvestatd`) reports live free-block and free-inode counts, including space other nodes have just used. Since 0.9.5 it fails on a stopped mount.
+`statfs` (so `df`, and Proxmox's `pvestatd`) reports live counts. This node's own use shows at once, and space other nodes have used within a second: the shared table is read from the LUN at most once a second, however often `statfs` is called, so even a tight `df` loop costs the storage one read a second. Its *available* figure is what **this node** can allocate, leaving out space in Block Groups a live peer owns, so `df` can show different free space on different nodes. It fails on a stopped mount.
 
 ## Example: a simple Prometheus textfile exporter
 
@@ -55,4 +58,4 @@ for d in /proc/fs/cetrafs/*/; do
 done > "$TMP" && mv "$TMP" "$OUT"
 ```
 
-Good alerts to start with: `cetrafs_fenced == 1`, `cetrafs_stale_peers > 0` for longer than a few minutes, a non-zero increase in `cetrafs_journal_replay_refused` with no failover, and low `cetrafs_free_data_blocks`.
+Good alerts to start with: `cetrafs_fenced == 1`, `cetrafs_stale_peers > 0` for longer than a few minutes, `cetrafs_corruptions > 0` or `cetrafs_bmap_crc_bad > 0`, any increase in `cetrafs_space_waits`, a non-zero increase in `cetrafs_journal_replay_refused` with no failover, and low `cetrafs_free_data_blocks_owned + cetrafs_free_data_blocks_unowned_bgs` on any node. Add a `fsck_needed` check too: it isn't numeric, so test for a line other than `fsck_needed: no`.

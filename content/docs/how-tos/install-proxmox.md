@@ -117,6 +117,8 @@ It installs the packages on one node after another, and reports any node where t
 
 `proxmox-default-headers` follows the default Proxmox kernel series, so the headers for each new kernel arrive with the kernel and DKMS rebuilds the module automatically. If a node runs a kernel other than the default one, install its headers too: `apt-get install -y proxmox-headers-$(uname -r)`.
 
+DKMS builds cetrafs only for kernels 7.0 to 7.2. Pin the kernel on each node (`proxmox-boot-tool kernel pin <version>`), and move the pin only once `dkms status cetrafs` lists the module as installed for the new kernel. A node that boots a kernel without the module can't mount the volume.
+
 If Secure Boot is enabled on a node, enroll the DKMS signing key there once, or the kernel refuses the module with `Key was rejected by service`. See [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
 
 Installing the plugin restarts the Proxmox API services (`pvedaemon`, `pveproxy`, `pvestatd`, `pvescheduler`) so they load it. Running guests are not affected.
@@ -162,9 +164,9 @@ pve3         cetrafs-dkms={{< version >}} cetrafs-tools={{< version >}} pve-stor
 
 ## Upgrade
 
-Download the new releases and install them the same way, on every node: steps 1 to 4 above work for upgrades too. Keep `cetrafs-dkms` and `cetrafs-tools` at the same version on all nodes, and `pve-storage-cetrafs` and `pve-storage-cetrafs-ui` likewise. Read the cetrafs release notes first: if the on-disk format version changed, you have to [move the data and reformat](/docs/how-tos/upgrade-reformat/).
+Download the new releases and install them the same way, on every node: steps 1 to 4 above work for upgrades too. Keep `cetrafs-dkms` and `cetrafs-tools` at the same version, and `pve-storage-cetrafs` and `pve-storage-cetrafs-ui` likewise. Read the cetrafs release notes first: if the on-disk format version changed, as it did from 0.9.x to 0.10, you have to [move the data and reformat](/docs/how-tos/upgrade-reformat/).
 
-A new `cetrafs-dkms` builds the new module, but a mounted volume keeps running the old one until it is unmounted and the module is reloaded. The simplest way is to migrate the guests away and reboot the node, one node at a time.
+Within one format version, nodes can be upgraded one at a time. A new `cetrafs-dkms` builds the new module, but a mounted volume keeps running the old one until it is unmounted and the module is reloaded. The simplest way is to migrate the guests away and reboot the node, one node at a time.
 
 ## Next
 

@@ -1,7 +1,7 @@
 ---
 weight: 510
 title: "fsck.cetra"
-description: "Check and repair a cetrafs volume offline: synopsis, the four passes, what -r repairs and refuses, and exit codes."
+description: "Check and repair a cetrafs volume: synopsis, offline and live checks, the four passes, what -r repairs and refuses, and exit codes."
 toc: true
 ---
 
@@ -9,43 +9,68 @@ toc: true
 
 ```text
 fsck.cetra [-r] <blockdev>
+fsck.cetra --live <blockdev>
+fsck.cetra --discard-journal <row> <blockdev>
 ```
 
 | Option | Meaning |
 |---|---|
-| *(none)* | Check only. Changes nothing. |
-| `-r` | Repair faults that have one correct answer. Refuses everything else. |
+| *(none)* | Check only, offline. Changes nothing. |
+| `-r`, `--repair` | Check offline and repair the faults that have one correct answer. Refuses everything else. |
+| `--live` | Check a volume that other nodes have mounted, read-only, without claiming it. Can't be combined with `-r`. |
+| `--discard-journal <row>` | Mark Node Registry row `<row>`'s journal clean **without replaying it**, then run as `-r`. Only for a journal a mount can't replay because a block of it is unreadable: its pending writes are lost, and the walk afterwards reports what they would have repaired. |
 
-## Preconditions
+## Offline checks
 
-Refuses to run if the volume is **mounted locally**, or if its Node Registry has a **live row**: a node that is still heartbeating. To tell, it watches every row a node hasn't left cleanly, and a row whose heartbeat doesn't move counts as gone. Since 0.9.4 it watches for the longest stale window a node may be set to, 240 s, because a node's own `stale_secs` isn't on the device: a tool that waited less could take a node with a long window for dead. Since 0.9.3 that verdict never depends on comparing clocks, so a node whose clock lags can't be taken for dead, and a row caught mid-update is read again instead of being skipped.
+`fsck.cetra` and `fsck.cetra -r` refuse to run if the volume is **mounted on this machine**, in any mount namespace, or if its Node Registry has a **live row**: a node that is still heartbeating. To tell, it watches every row a node hasn't left cleanly, for the longest stale window any row advertises (at most 240 s). A row whose heartbeat doesn't move counts as gone; the verdict never depends on comparing clocks.
+
+## Live checks
+
+`fsck.cetra --live <dev>` checks a volume while other nodes use it. It claims nothing and writes nothing, so the peers never notice it. Run it on a node that has the volume mounted, or on any other machine that sees the LUN; it first syncs this machine's mounts of the volume and reads the device directly, past the page cache.
+
+The volume changes under the walk, so it walks up to three times:
+
+| Result | Exit |
+|---|---|
+| A walk finds nothing | `0`, at once |
+| Every walk reports the same problem, word for word | `1`: damage repeats, a peer's write in flight doesn't. Take the volume offline on every node and run `fsck.cetra -r`. |
+| Every walk saw problems, but never the same one | `3`: the volume changed too fast to judge. Run it again when it is quieter. |
+
+`--live` never repairs.
 
 ## Passes
 
 | Pass | Checks |
 |---|---|
-| 1. Structural | Format version (`0x0009`); superblock checksum, every field the mount checks (since 0.9.4), and region map, including what past grows recorded; the Block Group table chain (no loop, no segment outside its place, as many descriptors as Block Groups); Zone Group and Block Group descriptors and headers; every Block Group owned by a real Zone Group or by none, with no two Block Groups overlapping; Node Registry rows |
-| 2. Cluster metadata | Per-node journal flags and slots; pending-free queue entries, including, since 0.9.3, a queued free for a block a file still uses (draining it would free live data) |
-| 3. Content | Inode bitmap and data bitmaps against the extent trees (all depths), in both directions; cross-file block overlap; two extents of one file over the same logical block, and preallocation outside a regular file (since 0.9.4); cached free counts against bitmaps; leaks |
-| 4. Namespace | Every directory's entries and block tails; a directory's size against the entries it holds (since 0.9.3); a directory with more than one name (since 0.9.4); `.` and `..`; link counts against referring entries; directory entry type against inode mode; reachability from the root |
+| 1. Structural | Format version (`0x000A`) and feature bits; the superblock's checksum, fields and region map, and its copy at block 2048; the Block Group and inode table chains; Zone Group and Block Group descriptors against their headers; every Block Group owned by a real Zone Group or by none, with no two overlapping; Node Registry rows |
+| 2. Cluster metadata | Per-node journals; pending-free queue entries, including a queued free for a block a file still uses |
+| 3. Content | Every bitmap sector's checksum; the inode and data bitmaps against the extent trees, at every depth, in both directions; cross-file block overlap; two extents of one file over the same logical block; cached free counts against bitmaps; leaks |
+| 4. Namespace | Every directory's entries and block tails; a directory's size against its entries; a directory with more than one name; `.` and `..`; link counts against referring entries; entry type against inode mode; reachability from the root |
 
 ## What `-r` repairs
 
 | Fault | Repair |
 |---|---|
-| Bitmap bit disagrees with the extent trees (leaked, or would be double-allocated) | Bit set to match the trees |
-| Block Group or Zone Group cached free count disagrees with its bitmap | Count recomputed |
-| A Zone Group's count of free space in unowned Block Groups (`pool_free_blocks`) disagrees with those Block Groups | Count recomputed |
-| `nlink` disagrees with the entries naming the inode | `nlink` corrected |
-| Orphan inode with `nlink = 0` | Freed |
-| Orphan inode with `nlink > 0` (lost directory entry) | Linked into `/lost+found` as `#<ino>` |
-| Directory block whose tail checksum is wrong but whose entries all parse (with `.` and `..` correct in a first block) | Tail re-stamped, names kept. Before 0.9.2 the block was erased and its files went to `/lost+found` by number. |
-| Directory size disagrees with the entries it holds | Size corrected. Since 0.9.3. |
-| A regular file's extent leaf whose tail checksum is wrong | Salvaged since 0.9.5: an entry is kept if its blocks are in a data region, set in the bitmap, named by nothing else, inside the index range, not overlapping another entry and clear of the damaged sector. The rest become holes. A leaf it can't salvage is reported. |
+| A bitmap bit disagreeing with the extent trees (leaked, or about to be allocated twice) | Bit set to match the trees |
+| A bitmap sector that fails its checksum | Rewritten from the bits the extent trees settle on |
+| A Block Group, Zone Group or pool free count disagreeing with the bitmaps | Recomputed |
+| `nlink` disagreeing with the entries naming the inode | Corrected |
+| An orphan inode with `nlink = 0`, or an empty file no entry names | Freed |
+| An orphan inode with `nlink > 0` (a lost directory entry) | Linked into `/lost+found` as `#<ino>` |
+| A directory's size disagreeing with its entries | Corrected |
+| A directory block with a bad tail checksum whose entries all parse | Tail re-stamped, names kept |
+| A regular file's extent leaf with a bad tail checksum | Salvaged: an entry is kept if its blocks are in a data region, set in the bitmap, named by nothing else, inside the index range and clear of the damaged sector. The rest become holes. |
+| A damaged Zone Group record | Rebuilt |
+| A damaged Block Group descriptor | Rebuilt from the Block Group's header |
+| A damaged Node Registry row | Rebuilt, keeping the incarnation its claims carry |
+| A garbage pending-free entry | Cleared |
+| Block 0 that doesn't verify, with a good copy at block 2048 | The volume is checked through the copy, then block 0 is restored from it |
+| A copy at block 2048 that is missing, stale or damaged | Rewritten |
+| The "needs fsck" mark a node left after finding damage | Cleared, at the end of a pass that finds the volume clean |
 
-If `-r` reports reclaimed blocks, run it again. Some reclamation it enables is picked up on the next pass.
+`-r` also retires Node Registry rows of nodes that have left and that nothing references, so a volume that has seen many machines has room for new ones.
 
-A live grow that stopped partway can leave two marks that aren't damage: a note about a table segment the superblock doesn't count yet, which the next grow replaces, and a `pool_free_blocks` that is too high, which `-r` recounts. See [Grow a volume](/docs/how-tos/grow-volume/#if-something-goes-wrong).
+If `-r` reports reclaimed blocks, run it once more: some reclamation it enables is picked up on the next pass.
 
 ## What `-r` refuses
 
@@ -54,23 +79,38 @@ Reported, never changed:
 | Fault | Why |
 |---|---|
 | Cross-file block overlap | Nothing on disk says which file should keep the block |
-| Unreadable inode record or extent header, or an extent tree deeper than the format allows | Its blocks can't be marked as used, so clearing them as leaks could hand a live file's blocks to someone else |
-| Dangling directory entry | Removing it destroys a name |
-| A directory with more than one name, or one whose extent tree no directory can have | Since 0.9.4. Removing either name frees what the other still names, and a link count derived without an unwalkable directory's names would be lowered. Either one blocks every repair in the run. |
-| Journal entries a mount hasn't replayed yet | The next mount completes those writes, which a repair made around them would contradict. Mount the volume once, unmount it, and run `-r` again. Since 0.9.3. |
+| An unreadable inode record or extent header | Its blocks can't be marked as used, so clearing them as leaks could hand a live file's blocks to someone else |
+| A dangling directory entry | Removing it destroys a name |
+| A directory with more than one name, or an extent tree no directory can have | Removing either name frees what the other still names. Either blocks every repair in the run. |
+| A deleted file whose blocks another file now holds | Reviving it would give two files one block |
+| Journal entries a mount hasn't replayed yet | The next mount completes those writes, which a repair made around them would contradict. No group record is rebuilt and the "needs fsck" mark stays. Mount the volume once, unmount it, and run `-r` again. |
+
+## Messages that aren't damage
+
+Leftovers of an interrupted operation are printed as `WARN` and don't change the exit code. Each is a leak, the safe direction, and the scrubber or `-r` takes it back: a deleted record's stale extents, a record that was never written, an empty file no entry names.
+
+A Block Group or Zone Group free count behind its bitmap, in a Zone Group whose owner didn't leave cleanly, is printed as a `note:`. The mount that takes over or re-attaches that Zone Group recounts it.
+
+After an unclean shutdown, an offline `fsck` run before the next mount can also report an orphan or a link count that lags its entries. The next mount repairs those; `fsck.cetra -r` isn't needed. A block referenced by a file but marked free is never a crash leftover: treat it as damage.
 
 ## While `-r` runs
 
-A repair writes the inode table, the bitmaps and directory blocks for minutes, so nothing may mount the volume meanwhile. Since 0.9.2, `fsck.cetra -r` **claims the volume** first: it holds a Node Registry row in the `REPAIR` state, and a mount on any node is refused with `EBUSY` until the repair ends. The claim is a lease that the repair renews every 5 seconds. A mount that finds a claim watches it for the stale window (since 0.9.4; 15 seconds in 0.9.3), and if it wasn't renewed, the repairer is gone and the mount goes ahead. Before 0.9.3 the mount judged the claim by its timestamp, so a node whose clock ran ahead could mount in the middle of a repair.
+A repair writes the inode table, the bitmaps and directory blocks, so nothing may mount the volume meanwhile. `fsck.cetra -r` **claims the volume** first: it holds a Node Registry row in the `REPAIR` state, and a mount on any node is refused with `EBUSY` until it ends. Other nodes show the row as `REPAIR-IN-PROGRESS` in [`cluster`](/docs/reference/procfs/#cluster).
 
-Since 0.9.4:
-
-- On a device with compare-and-write, the claim is taken, renewed and released with compare-and-write, as the kernel does, so two repairs started together can't both go ahead.
-- While it works, the repair keeps watching the registry. If a node starts heartbeating under its claim, it stops; a repair that has lost its claim writes nothing more.
-- Killed with `SIGINT`, `SIGTERM`, `SIGHUP`, `SIGQUIT`, `SIGPIPE` or `SIGABRT`, it releases the claim. A claim left by `SIGKILL` or a crash is reaped by the next mount or tool.
-- When the registry is full, a repair borrows the row of a node that has provably left, and gives it back afterwards. `fsck.cetra -r` also retires departed rows nothing references, so a volume that has seen many machines can register new ones. Other nodes show the row as `REPAIR-IN-PROGRESS` in [`cluster`](/docs/reference/procfs/#cluster).
+- The claim is taken, renewed and released with compare-and-write, so two repairs started together can't both go ahead.
+- It is a lease, renewed every few seconds. A repair whose renewal stalls stops writing.
+- If a node starts heartbeating under the claim, the repair stops.
+- Killed with `SIGINT`, `SIGTERM`, `SIGHUP`, `SIGQUIT`, `SIGPIPE` or `SIGABRT`, it releases the claim. A claim left by `SIGKILL` or a crash is reaped by the next mount or tool, once it is no longer renewed.
+- When the registry is full, a repair borrows the row of a node that has provably left, and gives it back.
 
 A second `fsck.cetra -r` on a volume already being repaired stops with `is already being repaired` and exit code `3`. A check without `-r` takes no claim.
+
+## Unknown feature bits
+
+| The volume has an unknown | `fsck.cetra` | `fsck.cetra -r` |
+|---|---|---|
+| incompatible feature | refused, exit `1` | refused |
+| read-only-compatible or compatible feature | warns and checks | refused, writes nothing, exit `3` |
 
 ## Exit status
 
@@ -79,9 +119,9 @@ A second `fsck.cetra -r` on a volume already being repaired stops with `is alrea
 | `0` | Clean |
 | `1` | Problems found |
 | `2` | Bad invocation |
-| `3` | Couldn't examine the device |
+| `3` | Couldn't examine the device, or `--live` couldn't reach a verdict |
 
 ## Notes
 
-- Use an `fsck.cetra` from the same build as the kernel module. A mismatched version can misread the format.
-- After an unclean shutdown, expect a few orphans, counter drift and leaked blocks. See [Journaling and crash consistency](/docs/concepts/journaling/#per-fsync-not-per-syscall).
+- Use an `fsck.cetra` from the same release as the kernel module. A tool from another format version refuses the volume.
+- The volume's UUID is printed at the start of the run.

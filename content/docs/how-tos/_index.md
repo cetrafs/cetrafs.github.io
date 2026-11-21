@@ -1,7 +1,7 @@
 ---
 weight: 300
 title: "How-to guides"
-description: "Recipes for specific jobs: install, prepare storage, mount, tune, monitor, repair and recover."
+description: "Recipes for specific jobs: install, prepare storage, mount, tune, monitor, grow, reclaim space, repair, recover and upgrade."
 toc: false
 ---
 
@@ -11,8 +11,8 @@ How-to guides assume you already know what cetrafs is and have a specific job to
 
 **Prepare storage** · [check for atomic CAW](/docs/how-tos/check-caw/) · [set the stale window for multipath](/docs/how-tos/multipath-stale-window/) · [validate the storage stack](/docs/how-tos/validate-storage-stack/)
 
-**Set up** · [create a volume](/docs/how-tos/create-volume/) · [mount at boot](/docs/how-tos/mount-volume/) · [enable live migration](/docs/how-tos/live-migration/) · [Proxmox storage plugin](/docs/how-tos/proxmox-plugin/) · [configure VM disks](/docs/how-tos/configure-vm-disks/)
+**Set up** · [create a volume](/docs/how-tos/create-volume/) · [mount at boot](/docs/how-tos/mount-volume/) · [live migration on Proxmox](/docs/how-tos/live-migration/) · [live migration without `nofilelock`](/docs/how-tos/live-migration-handover/) · [Proxmox storage plugin](/docs/how-tos/proxmox-plugin/) · [configure VM disks](/docs/how-tos/configure-vm-disks/)
 
-**Operate** · [monitor](/docs/how-tos/monitor/) · [tune a live mount](/docs/how-tos/tune-mount/) · [defragment](/docs/how-tos/defragment/) · [grow a volume](/docs/how-tos/grow-volume/) · [debug logging](/docs/how-tos/debug-logging/)
+**Operate** · [monitor](/docs/how-tos/monitor/) · [tune a live mount](/docs/how-tos/tune-mount/) · [defragment](/docs/how-tos/defragment/) · [grow a volume](/docs/how-tos/grow-volume/) · [reclaim thin space](/docs/how-tos/reclaim-thin-space/) · [debug logging](/docs/how-tos/debug-logging/)
 
-**Repair and recover** · [check and repair](/docs/how-tos/check-and-repair/) · [recover from a node failure](/docs/how-tos/recover-node-failure/) · [upgrade to a new format](/docs/how-tos/upgrade-reformat/)
+**Repair and recover** · [check and repair](/docs/how-tos/check-and-repair/) · [recover from a node failure](/docs/how-tos/recover-node-failure/) · [upgrade](/docs/how-tos/upgrade-reformat/)

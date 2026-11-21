@@ -13,17 +13,19 @@ If a stalled node comes back after its peers have reclaimed its Zone Groups and 
 
 ## What cetrafs does about it: self-fencing
 
-Every registry row carries a **`fence_epoch`**, which acts as that node's **lease**. When a survivor reclaims a dead-looking node's resources, it replays that node's journal and then **increments the dead node's `fence_epoch`**.
+Every registry row carries a **`fence_epoch`**, which acts as that node's **lease**. When a survivor reclaims a dead-looking node's resources, it **increments the dead node's `fence_epoch`**, recording in the same compare-and-write who fenced it, why and when, and then replays its journal. A survivor takes nothing from a stale peer whose lease it hasn't revoked first.
 
 On every heartbeat, each node checks its own row **before** renewing it. It **fences itself** if:
 
 - its `fence_epoch` has changed,
 - its row is no longer `REGISTERED`, or
-- its row now carries a different UUID.
+- its row now carries a different UUID or incarnation.
 
-A fenced mount is a **one-way latch**: since 0.9.4 every access fails with `EIO`, reads included, until the volume is unmounted and mounted again, and the mount throws away its dirty metadata instead of writing it back. `/proc/fs/cetrafs/<dev>/info` shows `fenced: yes`. It is one cause of the general [stopped state](/docs/reference/mount-options/#what-a-stopped-mount-does). The check comes before the renewal on purpose: renewing first would re-assert a liveness the node is no longer entitled to.
+A fenced mount is a **one-way latch**: every access fails with `EIO`, reads included, until the volume is unmounted and mounted again, and the mount throws away its dirty metadata instead of writing it back. `/proc/fs/cetrafs/<dev>/info` shows `fenced: yes`, and `dmesg` names the node that fenced it. It is one cause of the general [stopped state](/docs/reference/mount-options/#what-a-stopped-mount-does). The check comes before the renewal on purpose: renewing first would re-assert a liveness the node is no longer entitled to.
 
-A node can also learn too late. If its heartbeat is stuck behind a hung device, it never gets to check its row, and its other threads write the moment I/O returns. So since 0.9.4, on a device with compare-and-write, a node **stops by itself** once its last successful renewal is three intervals old. That is one interval before any peer may call it stale, so it stops writing before anyone takes over its resources. A self-fenced node also no longer fences its peers or replays their journals, and a node takes nothing from a stale peer whose lease it hasn't revoked first.
+A node can also learn too late. If its heartbeat is stuck behind a hung device, it never gets to check its row, and its other threads write the moment I/O returns. So a node **stops by itself** once its last successful renewal is the stale window less one heartbeat old: 105 s with the defaults. That is before any peer may call it stale, so it stops writing before anyone takes over its resources. The lease is measured on a clock that keeps running through a suspend, and it applies on every mount, with or without compare-and-write.
+
+The lease is also checked close to the write itself: before every metadata write, under the buffer's lock; before every compare-and-write; per chunk of writeback and per block of direct I/O; and before each copy of a defragmentation step. A node that has lost its lease stops issuing writes within one of those steps.
 
 This is the storage-layer equivalent of a VMFS host stopping its I/O when it loses its heartbeat.
 
@@ -31,8 +33,8 @@ This is the storage-layer equivalent of a VMFS host stopping its I/O when it los
 
 Two gaps remain. They are stated here so nobody has to rediscover them:
 
-- **Writes already in flight.** I/O already queued on the device still lands, whenever it lands. Since 0.9.4 a fenced node discards its dirty metadata right after the stop, on every heartbeat tick and just before unmount, so the window is much narrower than it was: what is left is a metadata buffer dirtied by an operation already past every check, which the block layer can write back before the next sweep. Bitmap blocks are the main concern: a late write of a stale bitmap block can undo bits the new owner has since set.
-- **An operation that loses its namespace lock.** If a node's namespace lock is taken from it during an operation, the node notices when it releases the lock. It discards its staged record update instead of overwriting the new holder's repair. The system call had already returned success, though, so that operation's record changes (a link count, a directory sequence number) are lost. The new holder's journal replay restores what it covers, and fsck reconciles the rest.
+- **Writes already in flight.** I/O already handed to the block layer, or queued in a multipath map or on the array, still lands, whenever it lands. cetrafs can stop issuing writes; it can't recall one it has issued. That is why path timers must be shorter than the stale window, and why a hung host must be powered off.
+- **A host that is partitioned but alive.** It stops writing once its lease runs out, but nothing on the storage can make it stop sooner, or prove to its peers that it has.
 
 ## Who must close the rest: the cluster manager
 
@@ -50,6 +52,8 @@ cetrafs splits the job the same way VMFS and vSphere HA do:
 
 **Without such a manager, run cetrafs on one node only.** With one, configure the manager to fence a host *before* cetrafs's stale window runs out, so a hung host is powered off before its peers take over its resources.
 
+Once the manager has powered a host off, it can tell cetrafs so, and the host's files are taken over at once instead of after the stale window. See [Declare a fenced host dead](/docs/how-tos/recover-node-failure/#declare-a-fenced-host-dead). A node that a hardware watchdog should reboot can mount with `errors=panic`, which panics on a fence, an expired lease or a lost device instead of stopping.
+
 ## Make sure I/O fails before peers give up
 
-The same reasoning sets the most important tuning rule: a node's own failed I/O must give up before its peers give up on the node. With dm-multipath queueing I/O through a path outage for longer than the stale window, the stalled node's queued writes would be released *after* its peers had taken over. See [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).
+The same reasoning sets the most important tuning rule: the longest a write can be held on its way to the array must be shorter than the time a node rides out its own stall, the stale window less one heartbeat. A SCSI timeout, an iSCSI or FC transport wait and dm-multipath queueing all add up. Longer, and the stalled node's queued writes could land *after* its peers had taken over. See [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).

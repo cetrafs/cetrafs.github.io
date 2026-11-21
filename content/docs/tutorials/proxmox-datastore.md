@@ -36,19 +36,18 @@ rmmod cetrafs
 
 `max_caw_blocks` of 1 or more means the LUN can back a multi-node cluster. If it reads `0`, the volume can only be mounted by one node at a time.
 
-## 2. Check multipath against the stale window
+## 2. Check the path timers against the stale window
 
-Skip this step only if the LUN has a single path.
+A node that can't renew its heartbeat stops itself after the stale window less one heartbeat: 105 s with the defaults. After the full stale window, 120 s, its peers take over its storage. So a write must never be held on its way to the array for longer than 105 s, or it could land on storage another node now owns.
 
-When all paths to a host fail, dm-multipath **queues** I/O for `no_path_retry × polling_interval` seconds instead of failing it. The host's cetrafs heartbeat is queued along with everything else, so its peers stop seeing it. After the **stale window** (`stale_secs`, 120 s by default) the peers declare the host dead and reclaim its storage. If the host's queued writes are released after that, they land on storage another node now owns.
-
-The rule is: **a host must give up on failed I/O before its peers give up on the host.** The stock HPE 3PAR entry queues for 90 s, which the 120 s default clears. Check what your array does:
+A write can be held by the SCSI command timeout, then the transport (iSCSI's `replacement_timeout`, FC's `fast_io_fail_tmo`), then dm-multipath queueing (`no_path_retry × polling_interval`). Add them up for your array:
 
 ```sh
-multipath -t | grep -A 25 '<your array vendor string>'   # no_path_retry, polling_interval
+cat /sys/block/sdX/device/timeout                          # SCSI command timeout
+multipath -t | grep -A 25 '<your array vendor string>'     # no_path_retry, polling_interval
 ```
 
-If your queueing time is 120 s or more, raise `stale_secs` on every node, as described in [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/).
+If the sum reaches 105 s, shorten the timers or raise `stale_secs` on every node. The stock HPE 3PAR entry alone queues for 90 s, so on that array it usually means both. [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/) has the details.
 
 ## 3. Create the volume, once, from one node
 
@@ -79,7 +78,7 @@ grep file_lock /proc/fs/cetrafs/*/info     # file_lock: off
 The lock mode applies to the whole cluster. The first node to mount sets it and the rest inherit it, and a node that asks for a conflicting mode is refused. Putting the same option in every node's `fstab` keeps them consistent whatever order they boot in.
 
 {{< callout type="note" title="Who prevents double writes now?" >}}
-With `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. Only Proxmox's cluster layer keeps writers apart: a VM belongs to one node, and HA fences a failed node before restarting its VMs. qemu's own image locking is turned off in Proxmox, so nothing protects an image from a writer outside Proxmox. See [why `nofilelock` exists](/docs/concepts/locking/#why-nofilelock-exists-proxmox-turns-image-locking-off). cetrafs still makes the *sequential* handoff coherent: under `nofilelock` it reads each file's metadata fresh from the device, so the destination always sees the source's final state.
+With `nofilelock`, cetrafs no longer stops two nodes from writing the same image at once. Only Proxmox's cluster layer keeps writers apart: a VM belongs to one node, and HA fences a failed node before restarting its VMs. qemu's own image locking is turned off in Proxmox, so nothing protects an image from a writer outside Proxmox. See [why `nofilelock` exists](/docs/how-tos/live-migration/#why-proxmox-needs-it-image-locking-is-turned-off). cetrafs still makes the *sequential* handoff coherent: under `nofilelock` it reads each file's metadata fresh from the device, so the destination always sees the source's final state.
 {{< /callout >}}
 
 ## 5. Register the storage in Proxmox
@@ -107,13 +106,14 @@ Create a VM in the web UI or with `qm create`, with its disk on the `cetrafs` st
 | Format | **raw** | qcow2 fragments badly on any extent-based filesystem |
 | Cache | **None** (`cache=none`) | Direct I/O, Proxmox's default for shared storage and the path cetrafs is tuned for |
 | Async IO | **threads** (`aio=threads`) | Measured 30% faster than `io_uring` on raw and more than 4× faster on qcow2 |
+| Discard | **on** (`discard=on`) | A guest's TRIM frees space on the volume, and from there on a thin LUN |
 | Preallocation | **off** | Thin images allocate in long contiguous runs and avoid the extent-conversion path |
 | IO thread | on | Recommended for VirtIO SCSI single |
 
 For example, for VM 100 with a 32 GiB disk:
 
 ```sh
-qm set 100 --scsihw virtio-scsi-single --scsi0 cetrafs:32,format=raw,iothread=1,aio=threads
+qm set 100 --scsihw virtio-scsi-single --scsi0 cetrafs:32,format=raw,iothread=1,aio=threads,discard=on
 ```
 
 The reasons and the measurements behind these settings are in [Configure VM disks for cetrafs](/docs/how-tos/configure-vm-disks/).

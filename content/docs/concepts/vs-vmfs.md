@@ -18,16 +18,19 @@ VMFS's internals aren't published the way cetrafs's format header is. The VMFS c
 | Cluster primitive | ATS (atomic test-and-set); SCSI-2 reservations as a legacy fallback | Atomic COMPARE AND WRITE only, the same primitive. No fallback for multi-node. |
 | Node liveness | On-disk heartbeat region, timeout | On-disk Node Registry heartbeat, timeout |
 | Lock granularity | Per resource (file, directory, bitmap) | Per resource: a whole-file lock per inode, and a namespace lock covering only the records an operation changes |
-| Fencing on reclaim | A host that loses its heartbeat must re-acquire before resuming I/O | The reclaiming node increments the dead node's lease; the node fences itself (`EIO`) on its next heartbeat |
+| Fencing on reclaim | A host that loses its heartbeat must re-acquire before resuming I/O | A node that can't renew its heartbeat stops before its peers may take over; the reclaiming node also revokes its lease |
 | Crash recovery | On-disk lock state plus offline tooling (VOMA) | Per-node write-ahead redo journal, replayed automatically |
 | Namespace | Purpose-built for VM files | POSIX: directories, hardlinks, symlinks, xattrs, SELinux labels |
-| Checksums | Not exposed as a user-facing feature | CRC32C on every structure, verified by the kernel on read |
+| Checksums | Not exposed as a user-facing feature | CRC32C on every structure and every bitmap sector, verified by the kernel on read |
 | Allocation | Any host can allocate anywhere it wins the lock | Disk divided into Zone Groups; each node allocates only from its own |
-| Offline repair | VOMA, for a limited set of faults | `fsck.cetra`: four passes, repairs what has one correct answer |
+| Checking and repair | VOMA, for a limited set of faults | `fsck.cetra`: four passes, live or offline; repairs what has one correct answer |
 | Block size | 1 MB, with sub-blocks for small files (VMFS5/6) | Fixed 4 KiB |
-| Spanned volumes | Up to 32 extents | One block device |
+| Maximum file size | 62 TB | 1 EiB |
+| Spanned volumes | Up to 32 extents | One block device, grown in place |
 | Snapshot resignaturing | Yes | No |
-| VAAI offload (clone, UNMAP, zeroing) | Yes | No |
+| UNMAP to a thin LUN | Yes (VAAI) | Yes: automatic, `fstrim`, or inline |
+| Zeroing offload | Yes (VAAI) | Yes: WRITE ZEROES |
+| Clone offload (XCOPY) | Yes (VAAI) | No |
 | On-disk format | Proprietary | Open: one published header |
 | Platform | ESXi | Standard Linux kernel module |
 
@@ -51,9 +54,9 @@ VMFS's internals aren't published the way cetrafs's format header is. The VMFS c
 ## Where cetrafs deliberately does less
 
 - **Throughput of metadata operations.** A namespace operation costs about a dozen reads and eight writes. On a LUN where each takes tens of milliseconds, that limits how fast creates and deletes can go. VMFS has had many years of work on reducing round trips.
-- **One LUN per volume.** You grow capacity by growing the LUN, not by adding extents. A volume grows in place when its LUN grows, and since 0.9.5 it can do so while in use, as VMFS can.
+- **One LUN per volume.** You grow capacity by growing the LUN, not by adding extents. A volume grows in place, while in use, as VMFS can.
 - **No snapshot resignaturing.** Mounting an array-level snapshot of a volume next to the original isn't a defined workflow.
-- **No hardware offload.** Clone, copy, space reclaim and zeroing are ordinary block I/O from the host.
-- **Maturity.** VMFS has run in production for decades. cetrafs's cross-node behaviour has been tested on real multi-node hardware, but not at that scale or for that long.
+- **No copy offload.** Cloning and copying are ordinary block I/O from the host. Space reclaim and zeroing are offloaded, through UNMAP and WRITE ZEROES.
+- **Field history.** VMFS has run in production for decades. cetrafs's evidence is a test effort larger than the filesystem itself, including two-node runs on real SAN storage: see [How cetrafs is tested](/docs/concepts/testing/).
 
 None of these are correctness gaps. They are scope that hasn't been built, or has been deliberately left out.

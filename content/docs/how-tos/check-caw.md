@@ -32,15 +32,17 @@ cetrafs: caw probe: /dev/sdb -> class=scsi logical_block_size=512 max_caw_blocks
 | Result | Meaning |
 |---|---|
 | `class=scsi`, `max_caw_blocks` ≥ 1 | The LUN supports atomic compare-and-write. It can back a multi-node cluster. One logical block is enough, whether it is 512 bytes or 4 KiB. |
-| `logical_block_size=4096` | A 4Kn target, for example TrueNAS with a 4 KiB iSCSI extent. Supported since 0.9.1; with an earlier release, `fsync` and `close` on it fail with `EINVAL`. |
+| `logical_block_size=4096` | A 4Kn target, for example TrueNAS with a 4 KiB iSCSI extent. Supported. |
 | `max_caw_blocks=0` | No atomic CAW. **Single-node only.** If one host has the volume mounted, a mount on any other host fails with `EBUSY`. |
-| Probed on a partition | Since 0.9.4 a partition is treated as having no CAW: the command addresses the whole disk, so it would land on the wrong block. Put a shared volume on the whole LUN. |
+| Probed on a partition | A partition is treated as having no CAW: the command addresses the whole disk, so it would land on the wrong block. Put a shared volume on the whole LUN. |
 | `class=nvme` | NVMe's fused compare-and-write cannot be called from a kernel module, so cetrafs treats the device as having no CAW. **Single-node only.** |
 | `discover(...) failed` | cetrafs couldn't determine the capability. A mount on this device is **refused** rather than assuming either answer. |
 
 ## Check every node
 
 Run the probe on **each** host that will mount the volume. The capability belongs to the path between the host and the array, and a virtualisation layer can hide it. For example, a LUN passed through VMware ESXi to Proxmox VMs only shows CAW if ESXi passes ATS through. If one node reports `0` and the others report `1`, fix the presentation before you go any further.
+
+On a **512e** LUN (512-byte logical blocks on 4 KiB physical sectors), the array must also make compare-and-write atomic per 512-byte block: two nodes routinely swap neighbouring sectors of one physical sector. Hardware arrays do. A software target may not; test it with the [two-node suite](/docs/how-tos/run-tests/#the-multi-node-suite-ctest) before trusting it.
 
 ## Related
 
