@@ -27,14 +27,14 @@ The file can be open and in use while this runs, and it can be sparse or preallo
 | Refusal | Why |
 |---|---|
 | `held open for write by another node` | Another node has the file open. The move needs the file to itself, cluster-wide. |
-| `defragmentation not supported here` | The mount has `defrag=off` in `controls`. |
+| `defragmentation not supported here` | The mount has `defrag=off` in `controls`, or is mounted `nofilelock`. |
 | `not on a cetrafs mount` | The path isn't on cetrafs. |
 
 A first open of the file on this node, or another node asking for it, stops the pass at its next step, and the file is valid at every step. Run it again later.
 
 ## On `nofilelock` clusters
 
-The defragmenter works on `nofilelock` mounts too, for a file no other node has open: on Proxmox, the images of VMs running on this node. During a live migration, when both nodes have the image open, it stays away.
+A `nofilelock` mount has no defragmentation: the background pass is off, and `defrag.cetra` is refused with `defragmentation not supported here`. `defrag_available` in `controls` reads `no`. Without the file lock there is nothing to keep qemu and the defragmenter apart, and on Proxmox the defragmenter kept moving images qemu was filling. To defragment an image there, copy it, which lays it out again in long extents.
 
 ## Let it run in the background
 

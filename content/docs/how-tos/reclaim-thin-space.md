@@ -24,7 +24,15 @@ On a device without discard nothing breaks: `fstrim` answers "not supported", an
 
 ## Automatic: emptied Block Groups
 
-Nothing to do. When the last file in a Block Group goes, the group is unmapped within a heartbeat or two and handed back to the pool, where any node can claim it. Each node does this for the Block Groups it owns.
+Nothing to do. When the last file in a Block Group goes, the group is unmapped and handed back to the pool, where any node can claim it. Each node does this for the Block Groups it owns.
+
+A Zone Group the node has been writing into keeps its empty Block Groups for a grace period first, 150 seconds by default, so a long copy isn't handed back and claimed again every heartbeat. Once the node has left the Zone Group alone that long, its empty groups go back within a heartbeat or two. On a nearly full volume they go back at once. Change the grace per mount:
+
+```sh
+echo handback_grace=300 | sudo tee /proc/fs/cetrafs/<dev>/controls   # 30 to 1800 seconds
+```
+
+Longer smooths long copies further and keeps the space on this node longer. It never affects safety.
 
 Turn it off on an array whose UNMAP is slow, with the `nodiscard` mount option, or on a live mount:
 
@@ -69,7 +77,7 @@ An array releases space in its own allocation units. An UNMAP that covers only p
 ## When an UNMAP fails
 
 - **The array refuses it.** The blocks are freed anyway, and `discard_errors` in `info` counts it.
-- **It fails in a way that might still execute**, such as a timeout or a path error. The blocks are held back rather than reused, because an UNMAP that lands late would erase whatever was written there next. `fstrim` counts them in `trim_leaked_blocks`, and the scrubber returns them later.
+- **It fails in a way that might still execute**, such as a timeout or a path error. The blocks are held back rather than reused, because an UNMAP that lands late would erase whatever was written there next. `fstrim` counts them in `trim_leaked_blocks`, and the scrubber returns them once `trim_quarantine_secs` (default 600) have passed.
 
 ### A Block Group stuck waiting for its UNMAP
 

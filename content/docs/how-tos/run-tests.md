@@ -11,8 +11,8 @@ For what each tier exists to catch, and what a release goes through, see [How ce
 
 | Command | Needs | Covers |
 |---|---|---|
-| `make check-fsck` | Nothing (no module, no mount) | The 73 image suites: `fsck` fed one injected fault at a time |
-| `make check` | root, matching kernel headers, loop devices, about 7 GiB free (`CT_MIN_FREE_MB`) | The full gate: 837 suites, about 6,600 assertions. Never touches a real device. |
+| `make check-fsck` | Nothing (no module, no mount) | The 85 image suites: `fsck` fed one injected fault at a time |
+| `make check` | root, matching kernel headers, loop devices, about 7 GiB free (`CT_MIN_FREE_MB`) | The full gate: 933 suites, about 6,600 assertions. Never touches a real device. |
 | `make check-one SUITE=kernel/<name>.sh` | Same as `check` | One suite, e.g. `kernel/nslock.sh`. `make -C tests list` prints them all. |
 | `make -C tests matrix` | Same as `check`, plus room for 2.3 GiB images | A slice of the kernel suites under `nofilelock`, 1 GiB Block Groups, four Zone Groups and an 8 MiB journal. `CONFIGS="nofilelock bg1g"` picks some. |
 | `make check-slow` | Same, plus time | Multi-GiB sparse-file tests (`CETRAFS_SPARSE_TEST_SIZE_MB`, default 10 GiB) |

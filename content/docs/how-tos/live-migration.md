@@ -49,7 +49,7 @@ What cetrafs still guarantees is a coherent **sequential handoff**. Under `nofil
 Other things that change on a `nofilelock` mount:
 
 - `fcntl` byte-range locks are granted on each node, instead of refused. They don't reach other nodes.
-- The defragmenter keeps running, for files no other node has open.
+- Defragmentation is off, in the background and by hand: there is no lock to keep it away from a file qemu is writing.
 - Opening an image whose last writer crashed replays that node's journal first. Until the node is stale, the open fails with `EAGAIN`; an HA agent can [declare a powered-off host dead](/docs/how-tos/recover-node-failure/#declare-a-fenced-host-dead) to skip the wait.
 
 ## Why Proxmox needs it: image locking is turned off

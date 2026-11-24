@@ -23,7 +23,7 @@ defrag /mnt/cetra/images/100/vm-100-disk-0.raw: extents 2817 -> 6 (8388608 block
 
 ## How it stays safe
 
-The tool opens the file **for writing** on purpose. The defragmenter pins the file's cross-node lock while it moves blocks, so no other node can open the file during a step. On a `nofilelock` mount the same pin applies, for a file no other node has open.
+The tool opens the file **for writing** on purpose. The defragmenter pins the file's cross-node lock while it moves blocks, so no other node can open the file during a step. A `nofilelock` mount has no such lock, so defragmentation is refused there.
 
 A first open of the file on this node, or a request from another node that wants the file, stops the pass at its next step. The file is left valid at every step.
 

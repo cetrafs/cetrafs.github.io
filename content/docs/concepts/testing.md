@@ -14,13 +14,13 @@ To run the suites yourself, see [Run the test suites](/docs/how-tos/run-tests/).
 
 | What | Count |
 |---|---|
-| Regression suites in the gate (`make check`) | **837**: 764 against a mounted kernel module, 73 against the tools alone |
+| Regression suites in the gate (`make check`) | **933**: 848 against a mounted kernel module, 85 against the tools alone |
 | Assertions per full run | **about 6,600**, all of which must pass |
-| Suites with a negative control | **631 of 764** kernel suites prove they fail without the protection they test |
+| Suites with a negative control | **631** kernel suites prove they fail without the protection they test |
 | Fault switches in the module | **639** test-only switches, each removing exactly one protection |
 | Two-node scenarios on real shared storage | **68**, on Fibre Channel multipath and iSCSI LUNs |
 | Mechanical checks on the source code | **155** |
-| Bug classes on file | **59**, each audited across the whole source tree |
+| Bug classes on file | **60**, each audited across the whole source tree |
 | Faults `fsck.cetra` can name | **118** errors, each injected one at a time by a suite |
 | Crash-consistency scenarios | 7, replaying every write up to an arbitrary cut |
 | Fuzz campaigns per release | 4: hostile images against `fsck` and the mount, blind and field-aware |
@@ -41,7 +41,7 @@ The full gate is long because almost every suite builds its own volume from scra
 ## What a change has to pass
 
 1. **Its own suite, failing first.** A fix comes with a suite that reproduces the fault. The fix is then removed, or its test switch flipped, and the suite must fail. A check that has never been seen to fail doesn't count as coverage.
-2. **The full gate.** All 837 suites. Nothing ships on a red gate. A change to the userspace tools gets the whole gate too, because almost every kernel suite runs `mkfs` and `fsck`.
+2. **The full gate.** All 933 suites. Nothing ships on a red gate. A change to the userspace tools gets the whole gate too, because almost every kernel suite runs `mkfs` and `fsck`.
 3. **The source checks.** 155 rules read from the code itself, below.
 4. **The two-node suite on real hardware.** The only tier with real COMPARE AND WRITE, real cross-node caching and real node death.
 5. **The release matrix.** Crash rig, fuzzers, soak, a KASAN build, and the suites again under `nofilelock`, other geometries and a small journal.
@@ -74,7 +74,7 @@ A packaged build (DKMS or Debian) refuses every one of these switches, so none c
 
 ## Bugs are filed by class
 
-A fixed bug is one instance. The project keeps a registry of 59 bug classes, each phrased as the question that would have found it:
+A fixed bug is one instance. The project keeps a registry of 60 bug classes, each phrased as the question that would have found it:
 
 - *Is every read inside a read-decide-write forced fresh from the device?*
 - *Does a cache keyed by a reusable number carry a generation?*
@@ -136,7 +136,7 @@ Several classes of bug in the project's history were unreachable without it. Tha
 
 ## The last validation run
 
-On the {{< version >}} format, 2026-11-19:
+On 0.10.1, 2026-11-19:
 
 | Stage | Result |
 |---|---|

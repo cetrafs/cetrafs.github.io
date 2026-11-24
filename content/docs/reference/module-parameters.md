@@ -23,6 +23,9 @@ Parameters marked writable can also be changed at runtime under `/sys/module/cet
 | `auto_defrag_min_pct` | 200 | Fragmentation threshold: a file's extent count as a percentage of the minimum for its size |
 | `auto_defrag_min_extents` | 4 | Files with fewer extents than this are never defragmented in the background |
 | `auto_defrag_quiet_secs` | 10 | Seconds the background defragmenter leaves alone a file it has just declined |
+| `handback_grace_secs` | 150 | Seconds a Zone Group this node claimed or allocated in keeps its empty Block Groups before handing them back, 30–1800. The default for new mounts; `controls` `handback_grace=` changes it per mount. |
+| `space_wait_secs` | 300 | Seconds an overwrite or a last close waits for a full thin pool before the mount stops. `0` waits forever. |
+| `trim_quarantine_secs` | 600 | Seconds a run whose `fstrim` UNMAP may still execute is kept from the scrubber, 1–86400 |
 | `scrub` | on | Background reclaim of leaked data blocks (marked allocated, referenced by nothing) |
 | `scrub_interval_secs` | 1800 | Seconds between scrub cycles, 1–86400 |
 | `scrub_gap_secs` | 15 | Gap between the scrubber's two confirming passes, 15–3600. Must be longer than any allocation's commit window; it can't be set below 15. |

@@ -14,7 +14,7 @@ mount -t cetrafs [-o OPTIONS] <dev> <mountpoint>
 | Option | Effect |
 |---|---|
 | *(default)* | Read-write cluster participant. The cross-node **exclusive open lock** is on: while a node has a file open for writing, any open of that file from another node fails with `ETXTBSY`. `flock(2)` can suspend it for one file during a handoff. |
-| `nofilelock` | Turns the automatic exclusive open lock off, so an image can be open on two nodes during a live-migration handoff. Applies to the whole cluster; see [below](#the-file-lock-mode-applies-to-the-whole-cluster). |
+| `nofilelock` | Turns the automatic exclusive open lock off, so an image can be open on two nodes during a live-migration handoff. Also turns defragmentation off. Applies to the whole cluster; see [below](#the-file-lock-mode-applies-to-the-whole-cluster). |
 | `ro` | Read-only **observer**. Registers and heartbeats, so peers don't reclaim files it is reading, and publishes read presence. Claims no Zone Group, replays no peer's journal, runs no defragmenter or scrubber, and writes nothing else. Like ext4 and XFS it still **recovers this node**: if the node went down with work outstanding, the mount replays its own journal and gives back what its previous run held. A write-protected device can't be mounted at all, because the mount writes its registry row. |
 | `discard` | Give freed space back to the device as it is freed, in the background, batched. Off by default. See [Return free space to a thin LUN](/docs/how-tos/reclaim-thin-space/). |
 | `nodiscard` | Send no UNMAP at all: neither the automatic one when a Block Group empties, which is on by default, nor `discard`. `fstrim` then answers "not supported". |
@@ -82,10 +82,10 @@ Every serious error ends in the state a crash leaves, because a crash is what th
 
 A thin pool that fills up, or a snapshot whose copy-on-write has nowhere to go, doesn't stop the mount:
 
-- **A write into space already allocated waits** for the array to have room, as with VMFS. `dmesg` says `has no space to overwrite ... waiting for it`, and `space_waits` in `info` counts it. Give the pool space, or delete a snapshot, and every waiting write completes on its own. The heartbeat keeps running throughout.
+- **A write into space already allocated waits** for the array to have room, as with VMFS. `dmesg` says `has no space to overwrite ... waiting for it`, and `space_waits` in `info` counts it. Give the pool space, or delete a snapshot, and every waiting write completes on its own. The heartbeat keeps running throughout. If no space comes within `space_wait_secs` (default 300 seconds), the mount stops, as a crash would, and its peers recover from it.
 - **A write that needs new space fails with `ENOSPC`**, which pauses a qemu guest.
 
-The waiting processes sit in `D` state, and after two minutes the kernel's hung-task detector names them. That is expected here, and a reason not to run with `hung_task_panic=1`. If space can't be found, [stop the mount by hand](#stopping-a-mount-by-hand).
+The waiting processes sit in `D` state, and after two minutes the kernel's hung-task detector names them. That is expected here, and a reason not to run with `hung_task_panic=1`.
 
 ## Stopping a mount by hand
 

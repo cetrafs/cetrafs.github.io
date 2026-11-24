@@ -102,7 +102,9 @@ These counters cover the whole module, not one mount.
 | `discard_handback_bgs` | Emptied Block Groups unmapped as they went back to the pool |
 | `discard_pending_bgs` | Block Groups held out of use because their UNMAP's outcome is unknown. See [Return free space to a thin LUN](/docs/how-tos/reclaim-thin-space/#a-block-group-stuck-waiting-for-its-unmap). |
 | `discard_errors` | UNMAPs the device refused. The blocks are freed anyway. |
-| `trim_leaked_blocks` | Blocks held back because an `fstrim` UNMAP failed in a way that may still execute. The scrubber returns them later. |
+| `trim_leaked_blocks` | Blocks held back because an `fstrim` UNMAP failed in a way that may still execute. The scrubber returns them after `trim_quarantine_secs`. |
+| `trim_quarantined` | Blocks currently in that quarantine |
+| `trim_held_zone_groups` | Zone Groups this node took over and keeps from the scrubber for the quarantine, because the previous owner's hold was lost with it |
 | `inline_discard_queued`, `inline_discard_cmds`, `inline_discard_blocks`, `inline_discard_dropped` | The `-o discard` queue: runs queued, commands and blocks sent, and runs dropped because the queue was full. `fstrim` still finds dropped space. |
 | `space_waits` | Overwrites that waited because the array had no space for them: a full thin pool, or a snapshot's copy-on-write |
 | `close_space_waits` | Last closes that waited for space to write what they still held |
@@ -168,9 +170,10 @@ Write one `key=value` (or `key value`) per write. Reading the file prints the cu
 |---|---|---|---|
 | `defrag` | `on`, `off` | `on` | Allow defragmentation at all on this mount, including `defrag.cetra` |
 | `auto_defrag` | `on`, `off` | module `auto_defrag` | The background defragmenter |
-| `defrag_available` | read-only | | Whether defragmentation can run on this mount |
+| `defrag_available` | read-only | | Whether defragmentation can run on this mount: `no` under `nofilelock` |
 | `hb_interval_secs` | 5–30 | 15 | Seconds between this node's heartbeats |
 | `stale_secs` | 15–240, and ≥ 3 × `hb_interval_secs` | 120 | How long a peer may be silent before this node treats it as dead |
+| `handback_grace` | 30–1800 | 150, or module `handback_grace_secs` | Seconds a Zone Group this node claimed or allocated in keeps its empty Block Groups before handing them back. Read back as `handback_grace_secs`. Space only: no effect on safety. |
 | `discard` | `on`, `off` | `on`, or `off` with `nodiscard` | UNMAP an emptied Block Group as it goes back to the pool, and allow `fstrim` |
 | `inline_discard` | `on`, `off` | `off`, or `on` with `-o discard` | UNMAP freed space as it is freed. Needs `discard` on too. |
 | `discard_supported` | read-only | | Whether the device takes discards at all |

@@ -62,7 +62,7 @@ Mounting with `nofilelock` turns the automatic lock off. Each open then claims n
 - **Only the layer above keeps writers apart.** On Proxmox VE that is the cluster layer alone: a VM's configuration belongs to one node, and HA fences a failed node before restarting its VMs elsewhere. qemu's own image locking plays no part, because Proxmox turns it off.
 - **File metadata is trusted only while this node is the only opener.** With no lock guaranteeing that a cached copy is current, a node checks on the device, at every open and at least once a second, whether another node has the file open. While one does, every access reads the extent tree and inode record fresh, and a change the other node published drops the cached tree. That is what makes the **sequential** handoff coherent, even after a snapshot on the source has rewritten the image's layout. The cost is extra device reads while two nodes have the image open, which during a migration is a few seconds.
 - **Simultaneous writers are still unsafe.** `nofilelock` makes the handoff from one writer to the next correct. It does not make two writers at the same moment correct. What cetrafs does guarantee is that such an overlap isn't silent where it touches the extent tree: of two overlapping tree updates, one is dropped or the file is marked damaged.
-- **The defragmenter still runs**, for files no other node has open. Its pin is the lock itself, which every open honours in both modes.
+- **Defragmentation is off.** Its pin is the file lock, and without it nothing keeps the defragmenter away from an image qemu is filling.
 
 ### Proxmox, and the alternative
 
