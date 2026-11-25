@@ -19,6 +19,12 @@ The current release is **{{< version >}}**. It writes on-disk format **`0x000A`*
 
 Within one format version, nodes running different builds or different kernels can share a volume. A node whose module speaks another format version is refused at mount, so two formats never share a volume.
 
+## What changed in 0.10.3
+
+0.10.3 keeps format `0x000A`, so a 0.10.2 volume mounts as it is and nodes can be upgraded one at a time.
+
+- **Fast I/O into holes in fragmented images.** In a file with many extents, such as a VM image written in place, each 4 KiB of a hole used to cost a walk of most of the extent tree. Now a direct write into a hole maps the whole request at once, and a hole once found is remembered for reads. With about 49,000 extents, 1 MiB direct writes into a hole went from 241 to about 720 MB/s, and direct reads of a hole from 829 MB/s to 13 GB/s. See [Holes in fragmented images](/docs/concepts/performance/#holes-in-fragmented-images).
+
 ## What changed in 0.10.2
 
 0.10.2 keeps format `0x000A`: a 0.10.1 volume mounts as it is, and nodes can be upgraded one at a time.

@@ -13,7 +13,7 @@ toc: true
 
 ## Measured
 
-Data path, on HPE 3PAR over 32 Gb FC multipath, arm64 Proxmox nodes:
+Data path, on HPE 3PAR over 32 Gb FC multipath, amd64 Proxmox nodes:
 
 | Workload | cetrafs | GFS2, same LUN |
 |---|---|---|
@@ -71,6 +71,20 @@ So each file remembers several recently found extents, and the blocks that follo
 | Throughput | 1173 MB/s | 1091 MB/s |
 
 `ext_cache_hits` and `ext_cache_misses` in [`info`](/docs/reference/procfs/#performance) show whether the cache is working. Several invariants of this kind are guarded by tests that count device reads per operation, so a change that put a tree walk back on every block fails the gate.
+
+## Holes in fragmented images
+
+Finding out that a block is a hole is the expensive lookup: it has to read every leaf whose range could cover the block, so its cost grows with the file's extent count. A thin VM image is exactly that, a large, sparse file that fragments as it is written in place, and both a direct write into a hole and a read of one used to ask block by block.
+
+Since 0.10.3, a direct write into a hole maps the whole request at once, as far as the hole and the file's reservation reach, and a lookup that finds a hole also works out where it ends, so the following reads are answered without walking the tree. On an FC array, 1 GiB in a file of about 49,000 extents:
+
+| | Before | After | Empty file, for reference |
+|---|---|---|---|
+| `O_DIRECT` 1 MiB write into a hole | 241 MB/s | 709–748 MB/s | 616–696 MB/s |
+| `O_DIRECT` 1 MiB read of a hole | 829 MB/s | 13.0 GB/s | 14.1–15.8 GB/s |
+| Buffered read of a hole | 587 MB/s | 2.0 GB/s | 2.0–2.1 GB/s |
+
+Tree lookups per GiB fell from about 264,000 to 3,200 for the write, and from 262,144 to 1 for the read: a fragmented image now behaves like an empty one. A buffered write into a hole still looks it up per block, and in the same fragmented file runs at about 270–310 MB/s against 1.2–1.5 GB/s in an empty one; with `cache=none` qemu doesn't take that path. `dio_hole_runs` and `hole_cache_hits` in [`info`](/docs/reference/procfs/#performance) show both mechanisms at work.
 
 ## Read-only opens
 

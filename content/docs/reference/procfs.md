@@ -119,6 +119,8 @@ These counters cover the whole module, not one mount.
 | `dio_fallbacks`, `dio_converts` | `O_DIRECT` writes that went through the page cache instead (should stay at 0), and direct writes that converted preallocated blocks |
 | `map_calls`, `map_blocks` | Block mapping calls against the blocks they covered. `blocks` much larger than `calls` means mappings come back as contiguous runs. |
 | `ext_cache_hits`, `ext_cache_misses` | Lookups answered by the extents each file remembers, against those that walked the tree. On a sequential write `hits` should far outnumber `misses`. |
+| `dio_hole_runs`, `dio_hole_run_blocks` | Direct writes into a hole that mapped several blocks at once, and the blocks they mapped |
+| `hole_cache_hits` | Reads of a hole answered from a remembered hole instead of a tree walk |
 | `tree_blocks`, `tree_reads` | External extent-tree blocks written, and read during lookups |
 | `zero_inplace_blocks` | Blocks `ZERO_RANGE` zeroed in place with WRITE ZEROES |
 | `file_cache_drops`, `file_cache_reconciles` | Times this node dropped a file's cached tree because a peer changed the file, and the reconciles that followed. `drops` running ahead of `reconciles` means files are stuck on the slow, uncached path. |

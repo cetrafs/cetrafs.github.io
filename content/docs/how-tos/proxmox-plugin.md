@@ -8,6 +8,8 @@ toc: true
 
 The [`pve-storage-cetrafs`]({{< param pluginRepoURL >}}) plugin adds a `cetrafs` storage type to Proxmox VE. Proxmox then mounts the volume on every node by itself, marks it as **shared**, and uses it for VM images, container volumes, ISOs, templates and backups. You don't write `/etc/fstab` entries or run `pvesm add dir`.
 
+Version {{< plugin-version >}} implements Proxmox VE 9's storage API 17, so `pvesm` no longer warns that the plugin implements an older storage API. Hosts still on API 16 keep working.
+
 The plugin always mounts with `nofilelock`, which [live migration on Proxmox](/docs/how-tos/live-migration/) needs. Proxmox's cluster layer keeps two nodes from running the same guest; nothing at the image level does, because Proxmox turns qemu's image locking off. See [why `nofilelock` exists](/docs/how-tos/live-migration/#why-proxmox-needs-it-image-locking-is-turned-off).
 
 ## Before you start
