@@ -73,7 +73,7 @@ Within one format version, nodes running different builds or different kernels c
 - **iSCSI**: a commodity iSCSI LUN under a three-node amd64 Proxmox VE cluster.
 - **Loop devices**, for the single-node gate.
 
-The last full validation, on 0.10.1, passed every one of 6,623 assertions, every two-node release scenario on the FC rig, 6,600 fuzz iterations with no finding, and a KASAN build with no report. [How cetrafs is tested](/docs/concepts/testing/#the-last-validation-run) has the details.
+The last validation, on 0.10.4 and Proxmox VE 7.3.6, passed 7,346 assertions in the full gate, the two-node release suite on a three-node FC multipath rig, 6,600 fuzz iterations with no finding, and a KASAN build of the lock, create and multipath suites with no report. [How cetrafs is tested](/docs/concepts/testing/#the-last-validation-run) has the details.
 
 ## Out of scope
 

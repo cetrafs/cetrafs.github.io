@@ -9,7 +9,7 @@ What an upgrade involves depends on whether the on-disk format version changes. 
 
 | From | To | Format | What to do |
 |---|---|---|---|
-| 0.10.1 or 0.10.2 | {{< version >}} | `0x000A`, unchanged | [Node by node](#upgrading-within-a-format-version) |
+| 0.10.1 to 0.10.3 | {{< version >}} | `0x000A`, unchanged | [Node by node](#upgrading-within-a-format-version) |
 | 0.9.x | {{< version >}} | `0x0009` → `0x000A` | [Evacuate, reformat and restore](#upgrading-across-a-format-change) |
 | a release of one format | another release of the same format | unchanged | [Node by node](#upgrading-within-a-format-version) |
 

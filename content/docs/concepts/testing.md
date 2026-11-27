@@ -14,15 +14,15 @@ To run the suites yourself, see [Run the test suites](/docs/how-tos/run-tests/).
 
 | What | Count |
 |---|---|
-| Regression suites in the gate (`make check`) | **933**: 848 against a mounted kernel module, 85 against the tools alone |
-| Assertions per full run | **about 6,600**, all of which must pass |
-| Suites with a negative control | **631** kernel suites prove they fail without the protection they test |
-| Fault switches in the module | **639** test-only switches, each removing exactly one protection |
-| Two-node scenarios on real shared storage | **68**, on Fibre Channel multipath and iSCSI LUNs |
-| Mechanical checks on the source code | **155** |
+| Regression suites in the gate (`make check`) | **936**: 851 against a mounted kernel module, 85 against the tools alone |
+| Assertions per full run | **about 7,350**, all of which must pass |
+| Suites with a negative control | about **five in six** kernel suites prove they fail without the protection they test |
+| Fault switches in the module | **767** test-only switches, each removing exactly one protection |
+| Two-node scenarios on real shared storage | **70**, on Fibre Channel multipath and iSCSI LUNs |
+| Mechanical checks on the source code | **166** |
 | Bug classes on file | **60**, each audited across the whole source tree |
 | Faults `fsck.cetra` can name | **118** errors, each injected one at a time by a suite |
-| Crash-consistency scenarios | 7, replaying every write up to an arbitrary cut |
+| Crash-consistency scenarios | 8, replaying every write up to an arbitrary cut |
 | Fuzz campaigns per release | 4: hostile images against `fsck` and the mount, blind and field-aware |
 | Performance invariants | 22, each guarded by a test that counts operations |
 | Known open defects | **none** |
@@ -41,7 +41,7 @@ The full gate is long because almost every suite builds its own volume from scra
 ## What a change has to pass
 
 1. **Its own suite, failing first.** A fix comes with a suite that reproduces the fault. The fix is then removed, or its test switch flipped, and the suite must fail. A check that has never been seen to fail doesn't count as coverage.
-2. **The full gate.** All 933 suites. Nothing ships on a red gate. A change to the userspace tools gets the whole gate too, because almost every kernel suite runs `mkfs` and `fsck`.
+2. **The full gate.** All 936 suites. Nothing ships on a red gate. A change to the userspace tools gets the whole gate too, because almost every kernel suite runs `mkfs` and `fsck`.
 3. **The source checks.** 155 rules read from the code itself, below.
 4. **The two-node suite on real hardware.** The only tier with real COMPARE AND WRITE, real cross-node caching and real node death.
 5. **The release matrix.** Crash rig, fuzzers, soak, a KASAN build, and the suites again under `nofilelock`, other geometries and a small journal.
@@ -65,7 +65,7 @@ Each tier catches a class of fault the others structurally can't.
 
 **A test that can't fail is worse than no test, because it reads as coverage.** So:
 
-- **Negative controls are part of the suite.** 631 kernel suites name the switch that removes the protection they test, and run it: with the protection the damage doesn't happen, without it the same suite must see the damage. A control that doesn't fail is reported as a failure.
+- **Negative controls are part of the suite.** About five in six kernel suites name the switch that removes the protection they test, and run it: with the protection the damage doesn't happen, without it the same suite must see the damage. A control that doesn't fail is reported as a failure.
 - **The setup is asserted, not assumed.** "No freed block holds the marker" passes trivially when the punch freed nothing. Such suites have a separate failing exit for "the situation wasn't arranged".
 - **The concurrency is real.** A control for a race starts as many actors as the fix claims to serialise.
 - **The code under test is the only path to what the test observes.** Test switches exist so that nothing else catches the fault first.
@@ -136,17 +136,21 @@ Several classes of bug in the project's history were unreachable without it. Tha
 
 ## The last validation run
 
-On 0.10.1, 2026-11-19:
+On 0.10.4, 2026-11-26 and 27, on Proxmox VE 7.3.6:
 
 | Stage | Result |
 |---|---|
-| Full gate, 837 suites | **6,623 assertions passed, 0 failed** |
-| Two-node release suite, FC multipath LUN | **41 of 41** passed; 4 more need two survivors of a dead node and run on the three-node rig |
+| Full gate, 936 suites | **7,346 assertions passed**. One negative-control round missed its timing on a loaded machine, and passed three times out of three when run again. |
+| Two-node release suite, three nodes on an FC multipath LUN | Passed, 505 cross-node assertions |
+| Crash rig, every phase and its negative control | Passed |
 | Fuzzing `fsck`, blind and field-aware | 3,000 + 3,000 iterations, 0 findings |
 | Fuzzing the mount, blind and field-aware | 300 + 300 hostile images, 0 findings, no kernel warning |
-| KASAN build, full gate | 0 reports |
+| Soak, a full `fsck` after every round | 200 rounds clean |
+| Configuration matrix: `nofilelock`, other geometries, a small journal | Passed |
+| KASAN build, on 7.2.11 | The namespace-lock, lock, create and multipath suites, 92 in all: 0 reports |
+| COMPARE AND WRITE through multipath, per kernel | Path found on 7.0, 7.1, 7.2 and 7.3; on the FC array, on 7.0 and 7.3 |
 
-Every failure that run found was fixed in the same series, each with a suite that fails without the fix. Three of them were found only by the two-node tier.
+The first run on 7.3 found one defect: the search for the SCSI path under a multipath device failed on that kernel, so a multipath volume would have mounted for one node only. 0.10.4 fixes it, and every stage was run again on the fixed tree. The full gate under KASAN and the endianness check weren't repeated for this release, since the on-disk format didn't change.
 
 ## What the tests can't show
 
