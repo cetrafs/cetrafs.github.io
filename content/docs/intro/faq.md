@@ -32,7 +32,7 @@ faq:
   - question: "How is cetrafs tested?"
     answer: "With more than 900 regression suites, most of them proven to fail without the fix they guard, a content oracle that checks every block it wrote, randomized model checkers, a crash rig, image fuzzers, a KASAN build, and a two-node suite on real SAN storage. A full run of the main gate takes about 8 hours on one machine. See [How cetrafs is tested](/docs/concepts/testing/)."
   - question: "Which kernels are supported?"
-    answer: "Linux `7.0.14`, `7.1.8+deb13` (Debian) and `7.2.11`, and Proxmox VE `7.0.14-*-pve`, on amd64 and arm64. DKMS builds the module for kernels 7.0 to 7.2. See [Project status](/docs/intro/status/)."
+    answer: "Linux `7.0.14`, `7.1.8+deb13` (Debian), `7.2.11` and `7.3.4` (Debian), and Proxmox VE `7.0.14-*-pve` and `7.3.6-1-pve`, on amd64 and arm64. DKMS builds the module for kernels 7.0 to 7.3. See [Project status](/docs/intro/status/)."
   - question: "Is it ready for production?"
     answer: "Yes, for its target workload: VM disk images on a shared LUN with COMPARE AND WRITE. Every change passes more than 900 regression suites and about 6,600 assertions, two-node scenarios on real Fibre Channel and iSCSI storage, crash replay and fuzzing, and the list of known open defects is empty. Validate your own storage path before the first deployment, and keep backups, as with any storage. See [How cetrafs is tested](/docs/concepts/testing/) and [Validate a storage stack before deployment](/docs/how-tos/validate-storage-stack/)."
   - question: "Can I upgrade without reformatting?"

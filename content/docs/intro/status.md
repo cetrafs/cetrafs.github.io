@@ -19,6 +19,14 @@ The current release is **{{< version >}}**. It writes on-disk format **`0x000A`*
 
 Within one format version, nodes running different builds or different kernels can share a volume. A node whose module speaks another format version is refused at mount, so two formats never share a volume.
 
+## What changed in 0.10.4
+
+0.10.4 keeps format `0x000A`, so a 0.10.3 volume mounts as it is and nodes can be upgraded one at a time.
+
+- **Kernel 7.3.** The module builds on 7.3, and DKMS builds it for kernels 7.0 to 7.3. Tested on Debian's `7.3.4` and Proxmox VE's `7.3.6-1-pve`.
+- **Fix: no build on Proxmox's 7.3 kernels.** The module used a kernel function those kernels don't export to modules. It now uses one every kernel exports.
+- **Fix: multipath LUNs mounted single-node on 7.3.** On 7.3, cetrafs couldn't read `/sys` to find the SCSI path under a multipath device, took the LUN for one without COMPARE AND WRITE, and mounted it single-node. It now finds the path, and if `/sys` can't be read the mount is refused instead.
+
 ## What changed in 0.10.3
 
 0.10.3 keeps format `0x000A`, so a 0.10.2 volume mounts as it is and nodes can be upgraded one at a time.
@@ -54,7 +62,7 @@ Within one format version, nodes running different builds or different kernels c
 
 | | Supported | Notes |
 |---|---|---|
-| Kernels | `7.0.14`, `7.1.8+deb13` (Debian), `7.2.11`; Proxmox VE `7.0.14-*-pve` | DKMS builds the module for kernels 7.0 to 7.2 and skips any other. |
+| Kernels | `7.0.14`, `7.1.8+deb13` (Debian), `7.2.11`, `7.3.4` (Debian); Proxmox VE `7.0.14-*-pve` and `7.3.6-1-pve` | DKMS builds the module for kernels 7.0 to 7.3 and skips any other. |
 | Architectures | amd64, arm64 | The kernel must use 4 KiB pages. The on-disk format is little-endian and portable; only little-endian hosts are tested. |
 | Storage | Any block device for one node. For a cluster, a SCSI LUN with COMPARE AND WRITE, with 512-byte or 4 KiB logical blocks, single-path or dm-multipath | NVMe and NVMe over Fabrics devices work on one node only: NVMe compare-and-write isn't wired up. |
 | Array cache | Non-volatile or write-through | cetrafs orders its writes with cache flushes. An array that acknowledges a flush before the data is safe breaks that ordering, and nothing on the host can detect it. |

@@ -16,7 +16,7 @@ toc: true
 | Path-failure timers below the stale window | A node whose I/O is held longer than the stale window can have its writes land after its peers took over. See [Set the stale window for multipath](/docs/how-tos/multipath-stale-window/). |
 | An external cluster manager with host fencing (STONITH), for production multi-node use | A node that stalls but stays alive can keep writing what it had already queued after its peers have taken over. Without one, run single-node. |
 | One on-disk format version on every node, and tools from the same release as the module | A module of another format version is refused at mount. Different builds and kernels of one format version can share a volume. |
-| Supported kernel: `7.0.14`, `7.1.8+deb13`, `7.2.11`, Proxmox `7.0.14-*-pve` | DKMS builds for 7.0 to 7.2 only, and skips other kernels |
+| Supported kernel: `7.0.14`, `7.1.8+deb13`, `7.2.11`, `7.3.4`, Proxmox `7.0.14-*-pve` and `7.3.6-1-pve` | DKMS builds for 7.0 to 7.3 only, and skips other kernels |
 | A 4 KiB kernel page size: every amd64 kernel and nearly every arm64 one | The mount is refused on a kernel with 16 KiB or 64 KiB pages. `properties` shows `kernel_page_size`. |
 | Little-endian host (amd64, arm64); one architecture per cluster | Big-endian hosts are untested |
 

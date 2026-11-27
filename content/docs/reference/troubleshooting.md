@@ -40,7 +40,7 @@ toc: true
 |---|---|---|
 | `modprobe`: `Key was rejected by service` | Secure Boot is enabled and the module's signing key isn't enrolled. Every DKMS-built module does this | [Enroll the DKMS key](/docs/how-tos/secure-boot/) on the node |
 | `insmod`: `Required key not available` or `Key was rejected by service` | Secure Boot and a module you built yourself, which isn't signed | [Sign it](/docs/how-tos/secure-boot/#modules-you-build-yourself) |
-| `unknown filesystem type 'cetrafs'` | The module isn't installed for this kernel, or the kernel refused to load it | `dkms status cetrafs`; install the headers for the running kernel. DKMS builds only for kernels 7.0 to 7.2. If it is installed, `modprobe cetrafs` shows why it won't load |
+| `unknown filesystem type 'cetrafs'` | The module isn't installed for this kernel, or the kernel refused to load it | `dkms status cetrafs`; install the headers for the running kernel. DKMS builds only for kernels 7.0 to 7.3. If it is installed, `modprobe cetrafs` shows why it won't load |
 | `insmod`: unknown symbol `crc32c` | CRC32C is a separate module on this kernel | `modprobe libcrc32c`, or install the module and use `modprobe` |
 
 ## Mount failures
@@ -48,6 +48,7 @@ toc: true
 | Symptom | Meaning | Next step |
 |---|---|---|
 | `EBUSY` | The device has no atomic CAW and another node already has it mounted | Single-node only. [Check CAW](/docs/how-tos/check-caw/). |
+| `EIO`, `dm path: /sys/block/… cannot be read` in `dmesg` | On a multipath device, cetrafs couldn't read `/sys` to find the SCSI path, so it can't tell whether the LUN has atomic CAW. It refuses rather than mount single-node | Check that `/sys` is mounted and readable in PID 1's root, then mount again |
 | `EBUSY`, `is being repaired right now` in `dmesg` | An `fsck.cetra -r` or `growfs.cetra` is working on the volume | Wait for it to finish. A claim left by a killed tool is reaped once it is no longer renewed. |
 | `EBUSY`, `another machine has the same node UUID` in `dmesg` | Two machines share a DMI UUID, typically cloned VMs | Give one its own identity: `options cetrafs node_uuid=<uuid>`. See [the Node Registry](/docs/concepts/coordination/#the-node-registry). |
 | Refused, `node_uuid` named in `dmesg` | The firmware's DMI UUID is a placeholder, or there is no serial to tell machines apart | Set `node_uuid` on that machine |

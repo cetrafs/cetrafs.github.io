@@ -16,7 +16,7 @@ By the end you will have:
 - checked the volume with `fsck.cetra`.
 
 {{< callout type="note" title="Before you start" >}}
-You need a host running a **supported kernel** (`7.0.14`, `7.1.8+deb13` or `7.2.11`, including Proxmox VE `7.0.14-*-pve`) and root access. Use a test machine or VM. The tutorial touches only a disk image it creates, but it does load a kernel module.
+You need a host running a **supported kernel** (`7.0.14`, `7.1.8+deb13`, `7.2.11` or `7.3.4`, including Proxmox VE `7.0.14-*-pve` and `7.3.6-1-pve`) and root access. Use a test machine or VM. The tutorial touches only a disk image it creates, but it does load a kernel module.
 {{< /callout >}}
 
 ## 1. Install the build dependencies

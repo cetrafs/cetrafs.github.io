@@ -42,7 +42,7 @@ This works because the target workload is narrow:
 
 | Requirement | Why |
 |---|---|
-| Linux kernel `7.0.14`, `7.1.8+deb13` or `7.2.11` (incl. Proxmox VE `7.0.14-*-pve`) with headers | The module is built against the running kernel. DKMS builds it for 7.0 to 7.2. |
+| Linux kernel `7.0.14`, `7.1.8+deb13`, `7.2.11` or `7.3.4` (incl. Proxmox VE `7.0.14-*-pve` and `7.3.6-1-pve`) with headers | The module is built against the running kernel. DKMS builds it for 7.0 to 7.3. |
 | A shared block device visible to every node | That is the shared disk. |
 | For more than one node: SCSI **COMPARE AND WRITE** (ATS) support on the LUN | It is the only cross-node mutual-exclusion primitive. Without it a volume is single-node only, and mount enforces this. |
 | For production multi-node: a cluster manager with fencing | cetrafs's liveness check is a heartbeat timeout, so killing a hung host has to happen outside the filesystem. |

@@ -117,7 +117,7 @@ It installs the packages on one node after another, and reports any node where t
 
 `proxmox-default-headers` follows the default Proxmox kernel series, so the headers for each new kernel arrive with the kernel and DKMS rebuilds the module automatically. If a node runs a kernel other than the default one, install its headers too: `apt-get install -y proxmox-headers-$(uname -r)`.
 
-DKMS builds cetrafs only for kernels 7.0 to 7.2. Pin the kernel on each node (`proxmox-boot-tool kernel pin <version>`), and move the pin only once `dkms status cetrafs` lists the module as installed for the new kernel. A node that boots a kernel without the module can't mount the volume.
+DKMS builds cetrafs only for kernels 7.0 to 7.3. Pin the kernel on each node (`proxmox-boot-tool kernel pin <version>`), and move the pin only once `dkms status cetrafs` lists the module as installed for the new kernel. A node that boots a kernel without the module can't mount the volume.
 
 If Secure Boot is enabled on a node, enroll the DKMS signing key there once, or the kernel refuses the module with `Key was rejected by service`. See [Load the module with Secure Boot](/docs/how-tos/secure-boot/).
 

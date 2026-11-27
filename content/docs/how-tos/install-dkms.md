@@ -31,7 +31,7 @@ make userspace
 sudo install -m 0755 userspace/mkfs.cetra userspace/fsck.cetra userspace/defrag.cetra userspace/growfs.cetra /usr/local/sbin/
 ```
 
-DKMS builds the module only for kernels 7.0 to 7.2 (`BUILD_EXCLUSIVE_KERNEL_MIN` and `_MAX` in `dkms.conf`) and skips any other. Pin the running kernel, and move the pin only once `dkms status` lists cetrafs for the new one.
+DKMS builds the module only for kernels 7.0 to 7.3 (`BUILD_EXCLUSIVE_KERNEL_MIN` and `_MAX` in `dkms.conf`) and skips any other. Pin the running kernel, and move the pin only once `dkms status` lists cetrafs for the new one.
 
 The DKMS build is a release build: the module refuses every test-only parameter.
 

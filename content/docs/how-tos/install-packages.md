@@ -61,7 +61,7 @@ Keep `cetrafs-dkms` and `cetrafs-tools` at the same version. An older `fsck.cetr
 
 Install the headers for the new kernel at the same time as the kernel itself (on Proxmox, the `proxmox-headers-*` package that matches the kernel). DKMS then rebuilds `cetrafs.ko` automatically.
 
-DKMS builds cetrafs only for kernels 7.0 to 7.2, the range its sources were written against, and skips any other kernel. A node that boots a kernel outside that range has no cetrafs. Keep the running kernel pinned (on Proxmox, `proxmox-boot-tool kernel pin <version>`), and move the pin only after `dkms status cetrafs` lists the module as installed for the new kernel.
+DKMS builds cetrafs only for kernels 7.0 to 7.3, the range its sources were written against, and skips any other kernel. A node that boots a kernel outside that range has no cetrafs. Keep the running kernel pinned (on Proxmox, `proxmox-boot-tool kernel pin <version>`), and move the pin only after `dkms status cetrafs` lists the module as installed for the new kernel.
 
 ## Build the packages yourself
 
